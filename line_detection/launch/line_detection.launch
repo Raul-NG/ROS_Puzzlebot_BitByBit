@@ -5,5 +5,5 @@
     <node name="odom_node" pkg="odom_calc" type="odom.py"/>
     <node name = "image_node" pkg = "color_identification" type="color.py"/>
     <arg name="node_start_delay" default="5.0" />  
-    <node name="line_detection" pkg="line_detection" type="line_detection,py" launch-prefix="bash -c 'sleep $(arg node_start_delay); $0 $@' " />
+    <node name="line_detection" pkg="line_detection" type="line_detection.py" launch-prefix="bash -c 'sleep $(arg node_start_delay); $0 $@' " />
 </launch>
