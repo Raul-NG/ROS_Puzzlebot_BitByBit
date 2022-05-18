@@ -6,7 +6,7 @@ image = cv2.imread('Ex.png')
 # Grayscale and Canny Edges extracted
 gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
-_,msk = cv2.threshold(gray,120,255, cv2.THRESH_BINARY)
+_,msk = cv2.threshold(gray,120,255, cv2.THRESH_BINARY_INV)
 
 erode = cv2.erode(msk, (5, 5), iterations = 6)
 
@@ -19,7 +19,7 @@ cv2.imshow('Canny', edges)
 # Run HoughLines using a rho accuracy of 1 pixel
 # theta accuracy aof np.pi / 180 which is 1 degree
 # The line threshold is set to 240 (number of points on line)
-lines = cv2.HoughLines(edges[Cutx[0]:Cutx[1],Cuty[0]:Cuty[1]], 1, np.pi / 180, 50)
+lines = cv2.HoughLines(edges[Cutx[0]:Cutx[1],Cuty[0]:Cuty[1]], 2, np.pi / 180, 50)
 
 # Iterate through each line and convert it to the format
 for i in range(len(lines)): 
