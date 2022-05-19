@@ -3,7 +3,8 @@ import numpy as np
 
 strong_lines = np.zeros([4,1,2])
 
-image = cv2.imread('Ex.png')
+# image = cv2.imread('Ex.png')
+image = cv2.imread('/run/user/1000/gvfs/sftp:host=10.42.0.1,user=puzzlebot/home/puzzlebot/catkin_ws/src/Line_Detection_NOT_ROS/Ex.png')
 
 # Grayscale and Canny Edges extracted
 gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
