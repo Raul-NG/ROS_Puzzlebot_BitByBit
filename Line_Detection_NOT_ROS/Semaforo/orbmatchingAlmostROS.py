@@ -3,7 +3,7 @@ import numpy as np
 
 tem = []
 glo = []
-for i in range(1,4):
+for i in range(1,6):
     tem.append(cv2.imread('semaforo_t_%d.png' % i))
     glo.append(cv2.cvtColor(tem[i-1], cv2.COLOR_BGR2GRAY))
 
@@ -16,12 +16,12 @@ flann = cv2.FlannBasedMatcher(index_params, search_params)
 
 kpt = []
 dest = []
-for i in range(3):
+for i in range(5):
     kptemp, destemp = orb.detectAndCompute(glo[i], None)
     kpt.append(kptemp)
     dest.append(np.float32(destemp))
 
-colores = ['verde', 'amarillo', 'rojo']
+colores = ['verde', 'amarillo', 'rojo','apagado 1', 'apagado 2']
 cap= cv2.VideoCapture(0)
 slml = []
 il = []
@@ -38,7 +38,7 @@ while True:
     index = 0
     matches = []
     matchesMask = []
-    for j in range(3):
+    for j in range(5):
         matches.append(flann.knnMatch(dest[j], desf, k=2))
         matchesMask.append([[0,0] for k in range(len(matches[j]))])
         for k,(m,n) in enumerate(matches[j]):
@@ -53,8 +53,8 @@ while True:
     if len(slml) > 10:
         slml.pop(0)
         il.pop(0)
-        slma = round(np.average(np.array(slml)))
-        ila = round(np.average(np.array(il)))
+        slma = round(np.median(np.array(slml)))
+        ila = round(np.median(np.array(il)))
     font = cv2.FONT_HERSHEY_SIMPLEX
     org = (0,frame.shape[1] - 170)
     fontScale = 1
