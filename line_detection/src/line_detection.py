@@ -173,6 +173,7 @@ class Line_Detector:
                 self.move_pub.publish(t)
             if self.colores[self.ila] == "verde":
                 #Poner code cuando esta en verde
+                pass
 
 
     def run(self):
