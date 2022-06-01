@@ -12,6 +12,7 @@ class Line_Detector:
     def __init__(self):
         self.bridge = CvBridge()
         self.image_raw = None
+        self.blobs_image = None
         self.dt = 0.1
         self.line = [0,0,0,0]
         self.lines = []
@@ -112,9 +113,9 @@ class Line_Detector:
 
 
         blank = np.zeros((1,1))
-        blobs = cv2.drawKeypoints(gray_image,keypoints,blank,(0,255,0),cv2.DRAW_MATCHESFLAGS_DRAW_RICH_KEYPOINTS)
+        blobs = cv2.drawKeypoints(gray_image,keypoints,self.blobs_image,(0,255,0),cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
         self.number_of_blobs = len(keypoints)
-        self.blobs_pub.publish(self.bridge.cv2_to_imgmsg(gray_image))
+        self.blobs_pub.publish(self.bridge.cv2_to_imgmsg(self.blobs_image))
         
     
     def choose_line(self):
