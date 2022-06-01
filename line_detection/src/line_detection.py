@@ -27,7 +27,6 @@ class Line_Detector:
         # self.cut_x = (320,960)
         self.edges = None
         self.number_of_blobs = 0
-        self.a = 0
 
         self.tem = []
 
@@ -37,6 +36,7 @@ class Line_Detector:
         # rospy.Subscriber('/odom', Pose2D, self.odom_callback)
         self.edges_pub = rospy.Publisher('/img_properties/edges', Image, queue_size=10)
         self.lines_pub = rospy.Publisher('/img_properties/lines', Image, queue_size=10)
+        self.blobs_pub = rospy.Publisher('/img_properties/blobs', Image, queue_size=10)
         self.canny_1 = rospy.Publisher('/img_properties/canny_1', Image, queue_size=10)
         self.canny_2 = rospy.Publisher('/img_properties/canny_2', Image, queue_size=10)
         self.move_pub = rospy.Publisher('/cmd_vel', Twist, queue_size=10)
@@ -50,7 +50,7 @@ class Line_Detector:
             self.detect_lines()
             self.detect_blobs()
         
-        if self.keypoints> 10:
+        if self.number_of_blobs > 10:
             self.check_trff_lgt()
         else:
             self.choose_line()
@@ -109,7 +109,13 @@ class Line_Detector:
         # Create a detector with the parameters
         detector = cv2.SimpleBlobDetector_create(params)
         keypoints = detector.detect(gray_image)
+
+
+        blank = np.zeros((1,1))
+        blobs = cv2.drawKeypoints(gray_image,keypoints,blank,(0,255,0),cv2.DRAW_MATCHESFLAGS_DRAW_RICH_KEYPOINTS)
         self.number_of_blobs = len(keypoints)
+        self.blobs_pub.publish(self.bridge.cv2_to_imgmsg(gray_image))
+        
     
     def choose_line(self):
         # for i in range(0, len(linesP)):
