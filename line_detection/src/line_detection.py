@@ -27,6 +27,9 @@ class Line_Detector:
         # self.cut_x = (320,960)
         self.edges = None
 
+        self.tem = []
+
+
         rospy.init_node('Line_Detector')
         rospy.Subscriber('/video_source/raw', Image, self.img_callback)
         # rospy.Subscriber('/odom', Pose2D, self.odom_callback)
@@ -44,7 +47,11 @@ class Line_Detector:
         for _ in range(2):
             self.detect_lines()
         if len(self.lines) > 70:
-            self.check_trff_lgt()
+            # self.check_trff_lgt()
+            t = Twist()
+            t.linear.x = 0.0
+            t.angular.z = 0.0
+            self.move_pub.publish(t)
         else:
             self.choose_line()
             self.navigate()
@@ -120,11 +127,73 @@ class Line_Detector:
         msg.angular.z = self.angular_speed
         self.move_pub.publish(msg)
     
-    def check_trff_lgt(self):
-        t = Twist()
-        t.linear.x = 0.0
-        t.angular.z = 0.0
-        self.move_pub.publish(t)
+    # def check_trff_lgt(self):
+
+    #     self.orb = cv2.ORB_create(1000)
+    #     self.orb.setScaleFactor(1.2)
+    #     FLANN_INDEX_KDTREE = 0
+    #     index_params = dict(algorithm = FLANN_INDEX_KDTREE, trees = 3)
+    #     search_params = dict(checks = 100)
+    #     self.flann = cv2.FlannBasedMatcher(index_params, search_params)
+
+    #     dest = []
+    #     for i in range(1,6):
+    #         _, destemp = self.orb.detectAndCompute(cv2.cvtColor(cv2.imread('semaforo_t_%d.png' % i), cv2.COLOR_BGR2GRAY), None)
+    #         dest.append(np.float32(destemp))
+
+    #     colores = ['verde', 'amarillo', 'rojo','apagado 1', 'apagado 2']
+    #     cap= cv2.VideoCapture(0)
+    #     slml = []
+    #     il = []
+    #     slma = 0
+    #     ila = 0
+    #     while True:
+    #         ret, frame= cap.read()
+    #         if cv2.waitKey(1) & 0xFF == 13 or ret == False:
+    #             break
+    #         gfr = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    #         kpf, desf = orb.detectAndCompute(gfr, None)
+    #         desf = np.float32(desf)
+    #         slm = 0
+    #         index = 0
+    #         matches = []
+    #         matchesMask = []
+    #         for j in range(5):
+    #             matches.append(self.flann.knnMatch(dest[j], desf, k=2))
+    #             matchesMask.append([[0,0] for k in range(len(matches[j]))])
+    #             for k,(m,n) in enumerate(matches[j]):
+    #                 if m.distance < 0.7*n.distance:
+    #                     matchesMask[j][k]=[1,0]
+    #             matchesMask[j] = np.array(matchesMask[j])
+    #             if slm < np.sum(matchesMask[j][:,0]):
+    #                 slm = np.sum(matchesMask[j][:,0])
+    #                 index = j
+    #         slml.append(slm)
+    #         il.append(index)
+    #         if len(slml) > 10:
+    #             slml.pop(0)
+    #             il.pop(0)
+    #             slma = round(np.median(np.array(slml)))
+    #             ila = round(np.median(np.array(il)))
+    #         font = cv2.FONT_HERSHEY_SIMPLEX
+    #         org = (0,frame.shape[1] - 170)
+    #         fontScale = 1
+    #         color = (255,255,255)
+    #         thickness = 1
+    #         text1 = cv2.putText(frame, str(slma), org, font, fontScale, color, thickness, cv2.LINE_AA)
+    #         org1 = (0,30)
+    #         if slma > 2:
+    #             text2 = cv2.putText(text1, colores[ila], org1, font, fontScale, color, thickness, cv2.LINE_AA)
+    #         else:
+    #             text2 = cv2.putText(text1, "no", org1, font, fontScale, color, thickness, cv2.LINE_AA)
+    #         cv2.imshow('Matching', text2)
+
+
+
+    #     t = Twist()
+    #     t.linear.x = 0.0
+    #     t.angular.z = 0.0
+    #     self.move_pub.publish(t)
 
 
     def run(self):
