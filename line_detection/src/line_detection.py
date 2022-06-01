@@ -151,7 +151,7 @@ class Line_Detector:
             matchesMask.append([[0,0] for k in range(len(matches[j]))])
             for k,(m,n) in enumerate(matches[j]):
                 if m.distance < 0.7*n.distance:
-                matchesMask[j][k]=[1,0]
+                    matchesMask[j][k]=[1,0]
             matchesMask[j] = np.array(matchesMask[j])
             if slm < np.sum(matchesMask[j][:,0]):
                 slm = np.sum(matchesMask[j][:,0])
