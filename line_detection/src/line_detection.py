@@ -27,6 +27,7 @@ class Line_Detector:
         # self.cut_x = (320,960)
         self.edges = None
         self.number_of_blobs = 0
+        self.a = 0
 
         self.tem = []
 
