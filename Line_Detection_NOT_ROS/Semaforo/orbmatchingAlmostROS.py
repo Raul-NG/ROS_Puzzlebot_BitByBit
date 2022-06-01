@@ -10,10 +10,7 @@ for i in range(1,tml+1):
 
 orb = cv2.ORB_create(1000)
 orb.setScaleFactor(1.2)
-FLANN_INDEX_KDTREE = 0
-index_params = dict(algorithm = FLANN_INDEX_KDTREE, trees = 3)
-search_params = dict(checks = 100)
-flann = cv2.FlannBasedMatcher(index_params, search_params)
+flann = cv2.FlannBasedMatcher(dict(algorithm = 0, trees = 3), dict(checks = 100))
 
 kpt = []
 dest = []

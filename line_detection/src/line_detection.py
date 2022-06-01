@@ -27,8 +27,20 @@ class Line_Detector:
         # self.cut_x = (320,960)
         self.edges = None
 
-        self.tem = []
-
+        #Vars semaforo
+        self.tml = 7
+        self.orb = cv2.ORB_create(1000)
+        self.orb.setScaleFactor(1.2)
+        self.flann = cv2.FlannBasedMatcher(dict(algorithm = 0, trees = 3), dict(checks = 100))
+        self.dest = []
+        for i in range(1,tml + 1):
+            _, destemp = self.orb.detectAndCompute(cv2.cvtColor(cv2.imread('semaforo_t_%d.png' % i), cv2.COLOR_BGR2GRAY), None)
+            self.dest.append(np.float32(destemp))
+        self.colores = ['verde', 'amarillo', 'rojo','apagado 1', 'apagado 2','verde','rojo']
+        self.slml = []
+        self.il = []
+        self.slma = 0
+        self.ila = 0
 
         rospy.init_node('Line_Detector')
         rospy.Subscriber('/video_source/raw', Image, self.img_callback)
@@ -47,7 +59,7 @@ class Line_Detector:
         for _ in range(2):
             self.detect_lines()
         if len(self.lines) > 70:
-            # self.check_trff_lgt()
+            self.check_trff_lgt()
             t = Twist()
             t.linear.x = 0.0
             t.angular.z = 0.0
@@ -128,57 +140,39 @@ class Line_Detector:
         self.move_pub.publish(msg)
     
     def check_trff_lgt(self):
-             tml = 7
-             self.orb = cv2.ORB_create(1000)
-             self.orb.setScaleFactor(1.2)
-             FLANN_INDEX_KDTREE = 0
-             index_params = dict(algorithm = FLANN_INDEX_KDTREE, trees = 3)
-             search_params = dict(checks = 100)
-             self.flann = cv2.FlannBasedMatcher(index_params, search_params)
-
-             dest = []
-             for i in range(1,tml + 1):
-                 _, destemp = self.orb.detectAndCompute(cv2.cvtColor(cv2.imread('semaforo_t_%d.png' % i), cv2.COLOR_BGR2GRAY), None)
-                 dest.append(np.float32(destemp))
-
-             colores = ['verde', 'amarillo', 'rojo','apagado 1', 'apagado 2','verde','rojo']
-             slml = []
-             il = []
-             slma = 0
-             ila = 0
-             while True:
-                 _, desf = orb.detectAndCompute(cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY), None)
-                 desf = np.float32(desf)
-                 slm = 0
-                 index = 0
-                 matches = []
-                 matchesMask = []
-                 for j in range(tml):
-                     matches.append(self.flann.knnMatch(dest[j], desf, k=2))
-                     matchesMask.append([[0,0] for k in range(len(matches[j]))])
-                     for k,(m,n) in enumerate(matches[j]):
-                         if m.distance < 0.7*n.distance:
-                         matchesMask[j][k]=[1,0]
-                     matchesMask[j] = np.array(matchesMask[j])
-                     if slm < np.sum(matchesMask[j][:,0]):
-                         slm = np.sum(matchesMask[j][:,0])
-                         index = j
-                 slml.append(slm)
-                 il.append(index)
-                 if len(slml) > 9:
-                     slml.pop(0)
-                     il.pop(0)
-                     slma = round(np.median(np.array(slml)))
-                     slmm = np.max(np.array(slml))
-                     ila = il[slml.index(slmm)]
-                 if slma > 3:
-                     # Mandar colores[ila]
-                 else:
-                     # Mandar "ninguno"
-             t = Twist()
-             t.linear.x = 0.0
-             t.angular.z = 0.0
-             self.move_pub.publish(t)
+        _, desf = self.orb.detectAndCompute(cv2.cvtColor(self.image_raw, cv2.COLOR_BGR2GRAY), None)
+        desf = np.float32(desf)
+        slm = 0
+        index = 0
+        matches = []
+        matchesMask = []
+        for j in range(self.tml):
+            matches.append(self.flann.knnMatch(self.dest[j], desf, k=2))
+            matchesMask.append([[0,0] for k in range(len(matches[j]))])
+            for k,(m,n) in enumerate(matches[j]):
+                if m.distance < 0.7*n.distance:
+                matchesMask[j][k]=[1,0]
+            matchesMask[j] = np.array(matchesMask[j])
+            if slm < np.sum(matchesMask[j][:,0]):
+                slm = np.sum(matchesMask[j][:,0])
+                index = j
+        self.slml.append(slm)
+        self.il.append(index)
+        if len(self.slml) > 9:
+            self.slml.pop(0)
+            self.il.pop(0)
+            self.slma = round(np.median(np.array(self.slml)))
+            self.slmm = np.max(np.array(self.slml))
+            self.ila = il[self.slml.index(self.slmm)]
+        if self.slma > 3:
+            # Mandar colores[ila]
+            if self.colores[self.ila] == "rojo":
+                t = Twist()
+                t.linear.x = 0.0
+                t.angular.z = 0.0
+                self.move_pub.publish(t)
+            if self.colores[self.ila] == "verde":
+                #Poner code cuando esta en verde
 
 
     def run(self):
