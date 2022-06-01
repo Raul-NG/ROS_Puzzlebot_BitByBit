@@ -26,6 +26,7 @@ class Line_Detector:
         self.cut_x = (0,1280)
         # self.cut_x = (320,960)
         self.edges = None
+        self.number_of_blobs = 0
 
         self.tem = []
 
@@ -46,16 +47,23 @@ class Line_Detector:
         self.lines = []
         for _ in range(2):
             self.detect_lines()
-        if len(self.lines) > 70:
-            # self.check_trff_lgt()
-            t = Twist()
-            t.linear.x = 0.0
-            t.angular.z = 0.0
-            self.move_pub.publish(t)
+            self.detect_blobs()
+        
+        if self.keypoints> 10:
+            self.check_trff_lgt()
         else:
             self.choose_line()
             self.navigate()
         self.show_lines()
+
+
+
+        # if len(self.lines) > 70:
+        #     self.check_trff_lgt()
+        # else:
+        #     self.choose_line()
+        #     self.navigate()
+        # self.show_lines()
 
     def img_callback(self,msg):
         self.image_raw = self.bridge.imgmsg_to_cv2(msg, "passthrough")
@@ -80,6 +88,28 @@ class Line_Detector:
         # linesP = cv2.HoughLinesP(edges[Cutx[0]:Cutx[1],Cuty[0]:Cuty[1]], 1, np.pi / 180, 50, None, 100, 10)
         # linesP = cv2.HoughLinesP(edges[Cutx[0]:Cutx[1],Cuty[0]:Cuty[1]], 2, np.pi / 180, 70, None, 70, 10)
         
+    def detect_blobs(self):
+
+        gray_image = cv2.cvtColor(self.image_raw[self.cut_y[0]:self.cut_y[1],self.cut_x[0]:self.cut_x[1]], cv2.COLOR_BGR2GRAY)
+
+        params = cv2.SimpleBlobDetector_Params()
+        # Set Area filtering parameters
+        params.filterByArea = True
+        params.minArea = 100
+        # Set Circularity filtering parameters
+        params.filterByCircularity = True 
+        params.minCircularity = 0.4
+        params.maxCircularity = 0.7
+        # Set Convexity filtering parameters 
+        params.filterByConvexity = False
+        # Set inertia filtering parameters
+        params.filterByInertia = True
+        params.minInertiaRatio = 0.01
+        # Create a detector with the parameters
+        detector = cv2.SimpleBlobDetector_create(params)
+        keypoints = detector.detect(gray_image)
+        self.number_of_blobs = len(keypoints)
+    
     def choose_line(self):
         # for i in range(0, len(linesP)):
         #     max_len = 0
@@ -127,7 +157,7 @@ class Line_Detector:
         msg.angular.z = self.angular_speed
         self.move_pub.publish(msg)
     
-    # def check_trff_lgt(self):
+    def check_trff_lgt(self):
 
     #     self.orb = cv2.ORB_create(1000)
     #     self.orb.setScaleFactor(1.2)
@@ -190,10 +220,10 @@ class Line_Detector:
 
 
 
-    #     t = Twist()
-    #     t.linear.x = 0.0
-    #     t.angular.z = 0.0
-    #     self.move_pub.publish(t)
+        t = Twist()
+        t.linear.x = 0.0
+        t.angular.z = 0.0
+        self.move_pub.publish(t)
 
 
     def run(self):
