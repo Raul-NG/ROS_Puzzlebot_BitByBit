@@ -5,7 +5,7 @@ tem = []
 glo = []
 tml = 7
 for i in range(1,tml+1):
-    tem.append(cv2.imread('semaforo_t_%d.png' % i))
+    tem.append(np.pad(cv2.pyrUp(cv2.imread('semaforo_t_%d.png' % i)), pad_width=[(250, 250),(250, 250),(0, 0)], mode='constant',constant_values=(255)))
     glo.append(cv2.cvtColor(tem[i-1], cv2.COLOR_BGR2GRAY))
 
 orb = cv2.ORB_create(1000)
@@ -48,7 +48,7 @@ while True:
             index = j
     slml.append(slm)
     il.append(index)
-    if len(slml) > 9:
+    if len(slml) > 19:
         slml.pop(0)
         il.pop(0)
         slma = round(np.median(np.array(slml)))
@@ -61,7 +61,7 @@ while True:
     thickness = 1
     text1 = cv2.putText(frame, str(slma), org, font, fontScale, color, thickness, cv2.LINE_AA)
     org1 = (0,30)
-    if slma > 3:
+    if slma > 1:
         text2 = cv2.putText(text1, colores[ila], org1, font, fontScale, color, thickness, cv2.LINE_AA)
     else:
         text2 = cv2.putText(text1, "no", org1, font, fontScale, color, thickness, cv2.LINE_AA)
