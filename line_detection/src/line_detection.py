@@ -19,7 +19,7 @@ class Line_Detector:
         self.error_angle = 0.0
         self.error = 0.0
         self.x_center = 640
-        self.linear_speed = 0.07      #Linear velocity
+        self.linear_speed = 0.12      #Linear velocity
         self.angular_speed = 0.0
         self.max_omega = np.pi/4    #Maximum angular velocity
         self.cut_y = (int(3*720.0/4.0),720)
