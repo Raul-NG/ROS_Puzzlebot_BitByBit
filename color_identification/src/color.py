@@ -64,7 +64,7 @@ class Image_processor:
             #color_xy
             msg = Float32MultiArray()
             M = cv2.moments(self.erode)
-            msg.data = cen = [int(M["m10"] / M["m00"]), int(M["m01"] / M["m00"])] if M["m00"] != 0 else [int(self.xlimit/2), int(self.ylimit/2)]
+            msg.data = [int(M["m10"] / M["m00"]), int(M["m01"] / M["m00"])] if M["m00"] != 0 else [int(self.xlimit/2), int(self.ylimit/2)]
             self.xy_publishers[color].publish(msg)
     
     def img_callback(self,msg):

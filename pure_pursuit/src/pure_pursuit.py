@@ -123,7 +123,6 @@ class Pure_pursuit:
     
     def timer_callback(self, time):
         msg = Twist()
-
         self.find_closest_wp()
         self.find_goal()
         self.transform_goal_coordenates()
@@ -136,7 +135,6 @@ class Pure_pursuit:
         msg.angular.x = 0.0
         msg.angular.y = 0.0
         self.pp_pub.publish(msg)
-        
         
     
     def odom_callback(self,msg): #Determine the current location and direction
