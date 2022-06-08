@@ -1,31 +1,36 @@
 #!/usr/bin/env python
 
 import rospy
-from sensor_msgs.msg import Image
 from geometry_msgs.msg import Twist
-from cv_bridge import CvBridge
+from std_msgs.msg import Float32MultiArray
 import numpy as np
-import cv2
-import math
 
 class Line_Detector:
     def __init__(self):
-        self.bridge = CvBridge()
-        self.image_raw = None
         self.dt = 0.1
-        self.line = [0,0,0,0]
-        self.lines = []
+        self.error_horizontal = 0.0
+        self.error_angle = 0.0
+        self.error = 0.0
+        self.x_center = 640
+        self.linear_speed = 0.12      #Linear velocity
+        self.angular_speed = 0.0
+        self.max_omega = np.pi/4    #Maximum angular velocity
         self.cut_y = (int(3*720.0/4.0),720)
         self.cut_x = (0,1280)
         # self.cut_x = (320,960)
         self.edges = None
+
+        self.tem = []
+
 
         rospy.init_node('Line_Detector')
         rospy.Subscriber('/video_source/raw', Image, self.img_callback)
         # rospy.Subscriber('/odom', Pose2D, self.odom_callback)
         self.edges_pub = rospy.Publisher('/img_properties/edges', Image, queue_size=10)
         self.lines_pub = rospy.Publisher('/img_properties/lines', Image, queue_size=10)
-        self.move_pub = rospy.Publisher('/line_detector', Twist, queue_size=10)
+        self.canny_1 = rospy.Publisher('/img_properties/canny_1', Image, queue_size=10)
+        self.canny_2 = rospy.Publisher('/img_properties/canny_2', Image, queue_size=10)
+        self.move_pub = rospy.Publisher('/cmd_vel', Twist, queue_size=10)
         self.rate = rospy.Rate(1/self.dt)
         self.timer = rospy.Timer(rospy.Duration(self.dt), self.timer_callback)
         rospy.on_shutdown(self.stop)

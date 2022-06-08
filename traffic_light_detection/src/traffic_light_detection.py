@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 
-from tabnanny import check
 import rospy
 from std_msgs.msg import String
 from sensor_msgs.msg import Image
@@ -25,8 +24,10 @@ class Traffic_Light_Detector:
         self.orb.setScaleFactor(1.2)
         self.flann = cv2.FlannBasedMatcher(dict(algorithm = 0, trees = 3), dict(checks = 100))
         self.dest = []
+        self.kps = []
         for i in range(1,self.tml + 1):
-            _, destemp = self.orb.detectAndCompute(cv2.cvtColor(cv2.imread('/home/puzzlebot/catkin_ws/src/traffic_light_detection/src/semaforo_t_%d.png' % i), cv2.COLOR_BGR2GRAY), None)
+            kptemp, destemp = self.orb.detectAndCompute(cv2.cvtColor(cv2.imread('/home/puzzlebot/catkin_ws/src/traffic_light_detection/src/semaforo_t_%d.png' % i), cv2.COLOR_BGR2GRAY), None)
+            self.kps.append(kptemp)
             self.dest.append(np.float32(destemp))
         self.colores = ['verde', 'amarillo', 'rojo','apagado 1', 'apagado 2','verde','rojo']
         self.slml = []
@@ -38,11 +39,14 @@ class Traffic_Light_Detector:
         rospy.Subscriber('/video_source/raw', Image, self.img_callback)
         rospy.Subscriber('/activator', String, self.activator_callback)
         self.traffic_light_pub = rospy.Publisher('/traffic_light', String, queue_size=10)
+        self.kp_pub = rospy.Publisher('/keypoints1', Image, queue_size=10)
         self.rate = rospy.Rate(1/self.dt)
         self.timer = rospy.Timer(rospy.Duration(self.dt), self.timer_callback)
         rospy.on_shutdown(self.stop)
 
     def timer_callback(self, time):
+        self.kp_pub.publish(self.bridge.cv2_to_imgmsg(cv2.drawKeypoints(cv2.imread('/home/puzzlebot/catkin_ws/src/traffic_light_detection/src/semaforo_t_1.png'),self.kps[0],cv2.imread('/home/puzzlebot/catkin_ws/src/traffic_light_detection/src/semaforo_t_1.png'), flags=cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS), "bgr8"))
+        
         if not self.activate: 
             return
         self.check_trff_lgt()
@@ -80,7 +84,8 @@ class Traffic_Light_Detector:
                 self.traffic_light_pub.publish("Verde")
             else:
                 self.traffic_light_pub.publish("Detecta algo")
-        self.traffic_light_pub.publish("No detecta nada")
+        else:        
+            self.traffic_light_pub.publish("No detecta nada")
     
     def img_callback(self,msg):
         self.image_raw = self.bridge.imgmsg_to_cv2(msg, "passthrough")
