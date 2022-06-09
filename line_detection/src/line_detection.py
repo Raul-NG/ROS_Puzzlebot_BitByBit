@@ -12,6 +12,7 @@ import cv2
 class Line_Detector:
     def __init__(self):
         self.bridge = CvBridge()
+        self.x_center = 640
         self.image_raw = None
         self.dt = 0.1
         self.line = [0,0,0,0]
@@ -20,6 +21,7 @@ class Line_Detector:
         self.cut_x = (0,1280)
         # self.cut_x = (320,960)
         self.edges = None
+        self.activate = False
 
         rospy.init_node('Line_Detector')
         rospy.Subscriber('/video_source/raw', Image, self.img_callback)
@@ -63,9 +65,7 @@ class Line_Detector:
     def detect_lines(self):
         # Grayscale and Canny Edges extracted
         gray_image = cv2.cvtColor(self.image_raw, cv2.COLOR_BGR2GRAY)
-        self.canny_1.publish(self.bridge.cv2_to_imgmsg(gray_image))
         _,msk = cv2.threshold(gray_image,90,255, cv2.THRESH_BINARY)
-        self.canny_2.publish(self.bridge.cv2_to_imgmsg(msk))
         msk = cv2.GaussianBlur(msk, (9,9), cv2.BORDER_DEFAULT)
         erode = cv2.erode(msk, np.ones((5, 5), np.uint8), iterations = 4)
         

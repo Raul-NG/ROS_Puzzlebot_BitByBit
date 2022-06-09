@@ -39,14 +39,11 @@ class Traffic_Light_Detector:
         rospy.Subscriber('/video_source/raw', Image, self.img_callback)
         rospy.Subscriber('/activator', String, self.activator_callback)
         self.traffic_light_pub = rospy.Publisher('/traffic_light', String, queue_size=10)
-        self.kp_pub = rospy.Publisher('/keypoints1', Image, queue_size=10)
         self.rate = rospy.Rate(1/self.dt)
         self.timer = rospy.Timer(rospy.Duration(self.dt), self.timer_callback)
         rospy.on_shutdown(self.stop)
 
     def timer_callback(self, time):
-        self.kp_pub.publish(self.bridge.cv2_to_imgmsg(cv2.drawKeypoints(cv2.imread('/home/puzzlebot/catkin_ws/src/traffic_light_detection/src/semaforo_t_1.png'),self.kps[0],cv2.imread('/home/puzzlebot/catkin_ws/src/traffic_light_detection/src/semaforo_t_1.png'), flags=cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS), "bgr8"))
-        
         if not self.activate: 
             return
         self.check_trff_lgt()
