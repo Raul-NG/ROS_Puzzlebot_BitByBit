@@ -8,7 +8,7 @@ for i in range(tml):
     tem.append(cv2.imread('%d.jpeg' % i))
     tem[i] = np.pad(cv2.pyrDown(cv2.pyrDown(tem[i])), pad_width=[(50, 50),(50, 50),(0, 0)], mode='constant',constant_values=(255))
 
-orb = cv2.ORB_create(500)
+orb = cv2.ORB_create(500,2)
 orb2 = cv2.ORB_create(1000)
 flann = cv2.FlannBasedMatcher(dict(algorithm = 0, trees = 3), dict(checks = 1000))
 
