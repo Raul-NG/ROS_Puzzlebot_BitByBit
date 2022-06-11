@@ -37,8 +37,8 @@ class Track_tour:
         self.rate = rospy.Rate(1/self.dt)
         self.timer = rospy.Timer(rospy.Duration(self.dt), self.timer_callback)
 
-        self.activate_msg.data = "OD_activate"
-        self.activator_pub.publish(self.activate_msg)
+        # self.activate_msg.data = "OD_activate"
+        # self.activator_pub.publish(self.activate_msg)
         self.activate_msg.data = "LD_activate" #PP, LD, TL
         self.activator_pub.publish(self.activate_msg)
         rospy.on_shutdown(self.stop)
@@ -66,6 +66,8 @@ class Track_tour:
             self.activator_pub.publish(self.activate_msg)
             self.activate_msg.data = "LD_activate" #PP, LD, TL
             self.activator_pub.publish(self.activate_msg)
+            # self.msg_vel.linear.x = 0
+            # self.msg_vel.angular.z = 0
 
     def tl_callback(self,msg):
         if msg.data == "Rojo":
@@ -75,16 +77,16 @@ class Track_tour:
             self.activate_msg.data = "TL_deactivate" #PP, LD, TL
             self.activator_pub.publish(self.activate_msg)
             if self.pp_turn == 0:
-                x = 0.65 
-                y = 0.0
+                x = 0.4
+                y = -(self.line[2]-self.line[0])/(self.line[3]-self.line[1])()
                 # point = [1.0, 0.0]
                 self.pp_msg.theta = 0.0
-                self.pp_turn = 1
-            elif self.pp_turn == 1:
-                x = 0.30
-                y = -0.20
-                self.pp_msg.theta = -np.pi/2
-                self.pp_turn = 0
+            #     self.pp_turn = 1
+            # elif self.pp_turn == 1:
+            #     x = 0.30
+            #     y = -0.20
+            #     self.pp_msg.theta = -np.pi/2
+            #     self.pp_turn = 0
             point = self.tp_robot_to_global(x,y)
             self.pp_msg.x = point[0]
             self.pp_msg.y = point[1]
@@ -127,5 +129,3 @@ if __name__ == '__main__':
         track_tour.run()
     except:
         pass
-
-
