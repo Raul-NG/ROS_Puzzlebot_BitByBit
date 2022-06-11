@@ -16,7 +16,7 @@ class Pure_pursuit:
         self.theta = 0.0
         self.desired_point_global = [0,0]
         self.p_transformed = [0,0]
-        self.v = 0.12      #Linear velocity
+        self.v = 0.04    #Linear velocity
         self.omega = 0.0      #Angular velocity
         self.dt = 0.01        
 
