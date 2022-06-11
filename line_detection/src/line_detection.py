@@ -44,8 +44,8 @@ class Line_Detector:
             self.activate = False
 
     def timer_callback(self, time):
-        if not self.activate:
-            return
+        # if not self.activate:
+        #     return
         
         self.lines = []
         msg = Float32MultiArray()
