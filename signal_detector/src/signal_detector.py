@@ -78,6 +78,8 @@ class Signal_Detector:
             if slm < np.sum(matchesMask[j][:,0]):
                 slm = np.sum(matchesMask[j][:,0])
                 signal_index = j+1
+        if slm == 0:
+            signal_index = 0
         self.index_pub.publish(signal_index)
         self.kalman_filter(signal_index)
         self.kf_pub.publish(round(self.s_pred))
@@ -146,5 +148,3 @@ if __name__ == '__main__':
         signal_detector.run()
     except:
         pass
-
-
