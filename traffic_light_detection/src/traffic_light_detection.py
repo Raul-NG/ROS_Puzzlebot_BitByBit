@@ -9,10 +9,12 @@ from std_msgs.msg import Float32
 from std_msgs.msg import Float32MultiArray
 from cv_bridge import CvBridge
 
-class Image_processor:
+class Traffic_Light_Detector:
 
     def __init__(self):
 
+        self.activate = False
+        
         self.bridge = CvBridge()
 
         self.image_raw = None
@@ -34,7 +36,8 @@ class Image_processor:
         self.index = -1
 
         rospy.init_node('Image_processor')
-
+        
+        rospy.Subscriber('/activator', String, self.activator_callback)
         rospy.Subscriber('/video_source/raw', Image, self.img_callback)
 
         colors = ['red','green','yellow','color not detected']
@@ -42,9 +45,9 @@ class Image_processor:
         self.mask_publishers = [rospy.Publisher('/img_properties/'+color+'/msk', Image, queue_size=10) for color in colors]
         self.traffic_light_pub = rospy.Publisher('/traffic_light', String, queue_size=10)
         self.rate = rospy.Rate(10)
-        # rospy.on_shutdown(self.stop)
+        rospy.on_shutdown(self.stop)
 
-        self.timer = rospy.Timer(rospy.Duration(self.dt), self.timer_callback)
+        self.timer = rospy.Timer(rospy.Duration(1/self.dt), self.timer_callback)
 
     def timer_callback(self, time):
         if not self.activate: 
@@ -89,9 +92,9 @@ class Image_processor:
         rospy.loginfo("Stopping traffic light detector.")
 
 if __name__ == '__main__':
-    img_p = Image_processor()
+    traffic_light_detector = Traffic_Light_Detector()
     try:
-        img_p.run()
+        traffic_light_detector.run()
     except:
         pass
 
