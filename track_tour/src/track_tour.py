@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+from multiprocessing.dummy import active_children
+from signal import signal
 import rospy
 from geometry_msgs.msg import Twist
 from std_msgs.msg import Float32MultiArray
@@ -15,6 +17,7 @@ class Track_tour:
         self.linear_speed = 0.04  
         self.angular_speed = 0.0
         self.activate_msg = String()
+        self.activate_ant = ""
         self.line = [640,640,640,640]
         self.odometry = Pose2D()
         self.pp_msg = Pose2D()
@@ -26,11 +29,12 @@ class Track_tour:
         self.Y = 0
         self.theta = 0
 
-        rospy.init_node('Track_navigator')
+        rospy.init_node('track_tour')
         rospy.Subscriber('/line_detector', Float32MultiArray, self.line_callback)
         rospy.Subscriber('/odom', Pose2D, self.odom_callback)
         rospy.Subscriber('/traffic_light', String, self.tl_callback)
         rospy.Subscriber('/pp_point', Pose2D, self.pp_callback)
+        rospy.Subscriber('/signal', String, self.signal_callback)
         self.move_pub = rospy.Publisher('/cmd_vel', Twist, queue_size=10)
         self.activator_pub = rospy.Publisher('/activator', String, queue_size=10)
         self.pp_pub = rospy.Publisher('/pp_point', Pose2D, queue_size=10)
@@ -55,12 +59,12 @@ class Track_tour:
             self.pp_pub.publish(self.pp_msg)
         self.activator_pub.publish(self.activate_msg.data)
 
-    def odom_callback(self,msg): #Determine the current location and direction
+    def odom_callback(self, msg): #Determine the current location and direction
         self.X = msg.x
         self.Y = msg.y
         self.theta = msg.theta
 
-    def pp_callback(self,msg):
+    def pp_callback(self, msg):
         if msg.x == msg.y == msg.theta == 100:
             self.activate_msg.data = "PP_deactivate" #PP, LD, TL
             self.activator_pub.publish(self.activate_msg)
@@ -69,7 +73,21 @@ class Track_tour:
             # self.msg_vel.linear.x = 0
             # self.msg_vel.angular.z = 0
 
-    def tl_callback(self,msg):
+    def signal_callback(self, msg):
+        if msg.data == "stop":
+            pass
+        elif msg.data == "continue":
+            pass
+        elif msg.data == "round":
+            pass
+        elif msg.data == "turn":
+            pass
+        elif msg.data == "no speed limit":
+            pass
+        elif msg.data == "No hay matches":
+            pass
+    
+    def tl_callback(self, msg):
         if msg.data == "Rojo":
             self.msg_vel.linear.x = 0
             self.msg_vel.angular.z = 0
@@ -94,7 +112,7 @@ class Track_tour:
             self.activate_msg.data = "PP_activate"
             self.activator_pub.publish(self.activate_msg)
 
-    def line_callback(self,msg):
+    def line_callback(self, msg):
         if msg.data[0] < 0:
             m = (self.line[3] - self.line[1])/(self.line[2] - self.line[0])
             try:
@@ -111,7 +129,7 @@ class Track_tour:
             # error_horizontal = self.x_center - end_point[0]
             # error = error_horizontal*rule_of_3
             #pp_new_point = [0.5, error] #Mandar esto, perdon ya me tenia que ir xd
-            point = self.tp_robot_to_global(0.5,error_cm)
+            point = self.tp_robot_to_global(0.6,error_cm)
             self.pp_msg.x = point[0]
             self.pp_msg.y = point[1]
             rospy.loginfo("x: 0.5"+" y: "+str(error_cm))
