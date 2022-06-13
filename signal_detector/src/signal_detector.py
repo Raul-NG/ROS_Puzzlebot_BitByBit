@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+from cv2 import KalmanFilter
 import rospy
 from std_msgs.msg import String
 from sensor_msgs.msg import Image
@@ -19,6 +20,14 @@ class Signal_Detector:
         self.cut_x = (0,1280)
         self.tem = []
 
+        #Kalman Filter Variables
+        self.signals = ['no matches','continue','turn','round','no speed limit','stop']
+        self.a = 0.5
+        self.s_pred = 0
+        self.sigma_u = 1
+        self.M = 0
+        self.s_hat = []
+
         self.tml = 5
         self.orb = cv2.ORB_create(500)
         self.orb2 = cv2.ORB_create(1000)
@@ -29,7 +38,7 @@ class Signal_Detector:
             self.tem[i] = np.pad(cv2.pyrDown(self.tem[i]), pad_width=[(50, 50),(50, 50),(0, 0)], mode='constant',constant_values=(255))
             _, destemp = self.orb.detectAndCompute(self.tem[i], None)
             self.dest.append(np.float32(destemp))
-        self.signals = ['stop', 'continue', 'round','turn', 'no speed limit','no']
+        # self.signals = ['stop', 'continue', 'round','turn', 'no speed limit','no']
         self.slml = []
         self.il = []
         self.ila = ""
@@ -53,7 +62,7 @@ class Signal_Detector:
         _, desf = self.orb.detectAndCompute(self.image_raw, None)
         desf = np.array(np.float32(desf))
         slm = 0
-        index = 0
+        signal_index = 0
         matches = []
         matchesMask = []
         for j in range(self.tml):
@@ -65,37 +74,51 @@ class Signal_Detector:
             matchesMask[j] = np.array(matchesMask[j])
             if slm < np.sum(matchesMask[j][:,0]):
                 slm = np.sum(matchesMask[j][:,0])
-                index = j
-            if slm == 0:
-                index = -1
-        self.slml.append(slm)
-        self.il.append(index)
-        if len(self.slml) > self.sizel:
-            self.slml.pop(0)
-            self.il.pop(0)
-        self.slmp = np.mean(np.array(self.slml))
-        vals, counts = np.unique(self.il, return_counts=True)
-        self.ila = self.signals[int(vals[np.argwhere(counts == np.max(counts))][0])]
-        self.slma = round(np.median(np.array(self.slml)))
+                signal_index = j
+        self.kalman_filter(signal_index)
+        self.signal_pub.publish(self.signals[signal_index])
+        # self.slml.append(slm)
+        # self.il.append(index)
+        # if len(self.slml) > self.sizel:
+        #     self.slml.pop(0)
+        #     self.il.pop(0)
+        # self.slmp = np.mean(np.array(self.slml))
+        # vals, counts = np.unique(self.il, return_counts=True)
+        # self.ila = self.signals[int(vals[np.argwhere(counts == np.max(counts))][0])]
+        # self.slma = round(np.median(np.array(self.slml)))
         # if self.slmp >= 2.0:
             # Mandar signals[self.ila]
-        if self.ila == "stop" and self.slmp >= 3.0:
-            self.signal_pub.publish("stop, "+"slmp: "+str(self.slmp))
-        elif self.ila == "continue":
-            self.signal_pub.publish("continue, "+"slmp: "+str(self.slmp))
-        elif self.ila == "round":
-            self.signal_pub.publish("round, "+"slmp: "+str(self.slmp))
-        elif self.ila == "turn":
-            self.signal_pub.publish("turn, "+"slmp: "+str(self.slmp))
-        elif self.ila == "no speed limit":
-            self.signal_pub.publish("no speed limit, "+"slmp: "+str(self.slmp))
-        else:
-            self.signal_pub.publish("No hay matches, "+"slmp: "+str(self.slmp))
+        
+
+
+
+        # if self.ila == "stop" and self.slmp >= 3.0:
+        #     self.signal_pub.publish("stop, "+"slmp: "+str(self.slmp))
+        # elif self.ila == "continue":
+        #     self.signal_pub.publish("continue, "+"slmp: "+str(self.slmp))
+        # elif self.ila == "round":
+        #     self.signal_pub.publish("round, "+"slmp: "+str(self.slmp))
+        # elif self.ila == "turn":
+        #     self.signal_pub.publish("turn, "+"slmp: "+str(self.slmp))
+        # elif self.ila == "no speed limit":
+        #     self.signal_pub.publish("no speed limit, "+"slmp: "+str(self.slmp))
+        # else:
+        #     self.signal_pub.publish("No hay matches, "+"slmp: "+str(self.slmp))
         # else:        
         #     self.signal_pub.publish("No detecta nada, "+"slmp: "+str(self.slmp))
-    
+
+
     def kalman_filter(self,sample):
-        a =1 
+        #Create the filter
+        self.s_pred = self.a*self.s_pred
+        error = sample - self.s_pred 
+
+        self.M = self.a**2*self.M+self.sigma_u          # Calculate prediction of MSE (Mean Square Error)
+        K = self.M/(self.sigma_u+self.M)           # Calculate Kalman gain
+        self.s_pred = self.s_pred + K*error        # Calculate new estimation with the prediction
+        # self.s_hat.append(self.s_pred)
+        self.M = (1-K)*self.M                                # Calculate new Mean Square Error
+        
 
     def img_callback(self,msg):
         self.image_raw = self.bridge.imgmsg_to_cv2(msg, "passthrough")
