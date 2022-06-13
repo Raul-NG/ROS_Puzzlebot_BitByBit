@@ -13,7 +13,7 @@ import math
 
 class Signal_Detector:
     def __init__(self):
-        self.activate = False
+        self.activate = True
         self.bridge = CvBridge()
         self.image_raw = None
         self.dt = 0.07
@@ -57,8 +57,8 @@ class Signal_Detector:
         rospy.on_shutdown(self.stop)
 
     def timer_callback(self, time):
-        # if not self.activate: 
-        #     return
+        if not self.activate: 
+            return
         self.check_trff_lgt()
         
     def check_trff_lgt(self):
@@ -78,8 +78,12 @@ class Signal_Detector:
             if slm < np.sum(matchesMask[j][:,0]):
                 slm = np.sum(matchesMask[j][:,0])
                 signal_index = j+1
-        if slm == 0:
-            signal_index = 0
+        self.il.append(signal_index)
+        if len(self.il) > self.sizel:
+            self.il.pop(0)
+        vals, counts = np.unique(self.il, return_counts=True)
+        signal_index = int(vals[np.argwhere(counts == np.max(counts))][0])
+
         self.index_pub.publish(signal_index)
         self.kalman_filter(signal_index)
         self.kf_pub.publish(round(self.s_pred))
@@ -131,9 +135,9 @@ class Signal_Detector:
         self.image_raw = self.bridge.imgmsg_to_cv2(msg, "passthrough")
 
     def activator_callback(self,msg):
-        if msg.data == "TL_activate":
+        if msg.data == "SD_activate":
             self.activate = True
-        elif msg.data == "TL_deactivate":
+        elif msg.data == "SD_deactivate":
             self.activate = False
 
     def run(self):

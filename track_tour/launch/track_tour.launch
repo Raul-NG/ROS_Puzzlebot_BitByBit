@@ -4,10 +4,10 @@
     <include file="$(find puzzlebot_autostart)/launch/puzzlebot_autostart.launch"/>
     <arg name="node_start_delay" default="5.0" />  
     <node name="line_detection" pkg="line_detection" type="line_detection.py" launch-prefix="bash -c 'sleep $(arg node_start_delay); $0 $@'"/>
-    <node name = "Traffic_Light_Detector" pkg = "traffic_light_detection" type = "traffic_light_detection.py" />
+    <node name = "traffic_light_detector" pkg = "traffic_light_detection" type = "traffic_light_detection.py" />
     <node name = "image_node" pkg = "color_identification" type="color.py"/>
     <node name="odom_node" pkg="odom_calc" type="odom.py"/>
-    <node name = "Track_navigator" pkg = "track_tour" type = "track_tour.py" output="screen"/>
-    <node name = "PP_sp" pkg = "pure_pursuit" type = "pp_single_point.py"/>
-    <node name = "Signal_Detector" pkg = "signal_detector" type = "signal_detector.py"/>
+    <node name = "track_tour" pkg = "track_tour" type = "track_tour.py" output="screen"/>
+    <node name = "pp_sp" pkg = "pure_pursuit" type = "pp_single_point.py"/>
+    <node name = "signal_detector" pkg = "signal_detector" type = "signal_detector.py"/>
 </launch>
