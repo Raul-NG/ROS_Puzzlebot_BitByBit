@@ -19,10 +19,13 @@ class Image_processor:
         self.CM = Float32MultiArray()
         self.density = Float32()
 
-        self.xlimit = 1280
+        self.cut_y = (0,int(720.0/2.0))
+        self.cut_x = (int(1280/3),int((2*1280)/3))
 
-        self.ylimit = 720
+        self.xlimit = self.cut_x[1] - self.cut_x[0]
 
+        self.ylimit = self.cut_y[1] - self.cut_y[0]
+        
         self.erode = None
 
         self.dt = 0.1
@@ -31,7 +34,7 @@ class Image_processor:
 
         rospy.Subscriber('/video_source/raw', Image, self.img_callback)
 
-        colors = ['red','green','blue','white','yellow']
+        colors = ['red','green','yellow']
         
         self.mask_publishers = [rospy.Publisher('/img_properties/'+color+'/msk', Image, queue_size=10) for color in colors]
         self.density_publishers = [rospy.Publisher('/img_properties/'+color+'/density', Float32, queue_size=10) for color in colors]
@@ -50,9 +53,10 @@ class Image_processor:
 
         for color, mask in enumerate(masks):
             #mask
-            dilate = cv2.dilate(mask, (5, 5), iterations = 6)
-            self.erode = cv2.erode(dilate, (5, 5),iterations = 6)
-            self.mask_publishers[color].publish(self.bridge.cv2_to_imgmsg(cv2.bitwise_not(self.erode)))
+            cut = mask[self.cut_y[0]:self.cut_y[1],self.cut_x[0]:self.cut_x[1]]
+            erode = cv2.erode(cut, np.ones((5, 5),iterations = 6)
+            self.dilate = cv2.dilate(erode, np.ones((5, 5), iterations = 6)
+            self.mask_publishers[color].publish(self.bridge.cv2_to_imgmsg(cv2.bitwise_not(self.dilate)))
             
             #color density
             den = np.sum(self.erode)/(self.xlimit*self.ylimit*255)
