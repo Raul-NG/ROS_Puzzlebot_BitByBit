@@ -1,6 +1,6 @@
 <?xml version = "10" encoding="UTF-8"?>
 <launch>
-	<include file="$(find ros_deep_learning)/launch/video_source.ros1.launch"/>
+    <include file="$(find ros_deep_learning)/launch/video_source.ros1.launch"/>
     <include file="$(find puzzlebot_autostart)/launch/puzzlebot_autostart.launch"/>
     <arg name="node_start_delay" default="5.0" />  
     <node name="line_detection" pkg="line_detection" type="line_detection.py" launch-prefix="bash -c 'sleep $(arg node_start_delay); $0 $@' " output="screen" />

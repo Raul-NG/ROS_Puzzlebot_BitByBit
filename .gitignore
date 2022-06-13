@@ -1,3 +1,4 @@
 *.txt
 *.xml
-Line_Detection_NOT_ROS/LinesShort.py
+*.DS_store
+
