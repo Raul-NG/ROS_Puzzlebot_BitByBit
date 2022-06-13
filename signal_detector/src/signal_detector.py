@@ -3,6 +3,7 @@
 from cv2 import KalmanFilter
 import rospy
 from std_msgs.msg import String
+from std_msgs.msg import Int32
 from sensor_msgs.msg import Image
 from geometry_msgs.msg import Twist
 from cv_bridge import CvBridge
@@ -22,7 +23,7 @@ class Signal_Detector:
 
         #Kalman Filter Variables
         self.signals = ['no matches','continue','turn','round','no speed limit','stop']
-        self.a = 0.5
+        self.a = 0.9
         self.s_pred = 0
         self.sigma_u = 1
         self.M = 0
@@ -34,7 +35,7 @@ class Signal_Detector:
         self.flann = cv2.FlannBasedMatcher(dict(algorithm = 0, trees = 3), dict(checks = 1000))
         self.dest = []
         for i in range(self.tml):
-            self.tem.append(cv2.imread('/home/puzzlebot/catkin_ws/src/signal_detector/src/%d.jpeg' % i))
+            self.tem.append(cv2.imread('/home/puzzlebot/catkin_ws/src/signal_detector/src/Signal_%d.jpeg' % i))
             self.tem[i] = np.pad(cv2.pyrDown(self.tem[i]), pad_width=[(50, 50),(50, 50),(0, 0)], mode='constant',constant_values=(255))
             _, destemp = self.orb.detectAndCompute(self.tem[i], None)
             self.dest.append(np.float32(destemp))
@@ -49,6 +50,8 @@ class Signal_Detector:
         rospy.Subscriber('/video_source/raw', Image, self.img_callback)
         rospy.Subscriber('/activator', String, self.activator_callback)
         self.signal_pub = rospy.Publisher('/signal', String, queue_size=10)
+        self.index_pub = rospy.Publisher('/index/signal', Int32, queue_size=10)
+        self.kf_pub = rospy.Publisher('/index/kf', Int32, queue_size=10)
         self.rate = rospy.Rate(1/self.dt)
         self.timer = rospy.Timer(rospy.Duration(self.dt), self.timer_callback)
         rospy.on_shutdown(self.stop)
@@ -74,9 +77,11 @@ class Signal_Detector:
             matchesMask[j] = np.array(matchesMask[j])
             if slm < np.sum(matchesMask[j][:,0]):
                 slm = np.sum(matchesMask[j][:,0])
-                signal_index = j
+                signal_index = j+1
+        self.index_pub.publish(signal_index)
         self.kalman_filter(signal_index)
-        self.signal_pub.publish(self.signals[signal_index])
+        self.kf_pub.publish(round(self.s_pred))
+        self.signal_pub.publish(self.signals[int(round(self.s_pred))])
         # self.slml.append(slm)
         # self.il.append(index)
         # if len(self.slml) > self.sizel:
