@@ -94,6 +94,9 @@ class Signal_Detector:
         # else:        
         #     self.signal_pub.publish("No detecta nada, "+"slmp: "+str(self.slmp))
     
+    def kalman_filter(self,sample):
+        a =1 
+
     def img_callback(self,msg):
         self.image_raw = self.bridge.imgmsg_to_cv2(msg, "passthrough")
 
