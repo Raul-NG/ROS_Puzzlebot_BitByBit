@@ -3,7 +3,7 @@ import numpy as np
 
 tem = []
 glo = []
-for i in range(1,6):
+for i in range(1,8):
     tem.append(cv2.imread('semaforo_t_%d.png' % i))
     glo.append(cv2.cvtColor(tem[i-1], cv2.COLOR_BGR2GRAY))
     cv2.imshow('semaforo_%d' % i,glo[i-1])
@@ -20,13 +20,13 @@ flann = cv2.FlannBasedMatcher(index_params, search_params)
 
 kpt = []
 dest = []
-for i in range(5):
+for i in range(len(tem)):
     kptemp, destemp = orb.detectAndCompute(glo[i], None)
     kpt.append(kptemp)
     dest.append(np.float32(destemp))
 
 dma = []
-for i in range(5):
+for i in range(len(tem)):
     dma.append(cv2.drawKeypoints(tem[i], kpt[i], tem[i], flags=cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS))
     cv2.imshow("Keypoints_%d" % (i+1), dma[i])
     print(len(kpt[i]))
@@ -66,26 +66,26 @@ matchesMask = []
 for i in range(8):
     slm = 0
     index = 0
-    for j in range(5):
+    for j in range(len(tem)):
         matches.append(flann.knnMatch(dest[j], dest1[i], k=2))
-        matchesMask.append([[0,0] for k in range(len(matches[i*5+j]))])
-        for k,(m,n) in enumerate(matches[i*5+j]):
+        matchesMask.append([[0,0] for k in range(len(matches[i*len(tem)+j]))])
+        for k,(m,n) in enumerate(matches[i*len(tem)+j]):
             if m.distance < 0.7*n.distance:
-                matchesMask[i*5+j][k]=[1,0]
-        matchesMask[i*5+j] = np.array(matchesMask[i*5+j])
-        if slm < np.sum(matchesMask[i*5+j][:,0]):
-            slm = np.sum(matchesMask[i*5+j][:,0])
+                matchesMask[i*len(tem)+j][k]=[1,0]
+        matchesMask[i*len(tem)+j] = np.array(matchesMask[i*len(tem)+j])
+        if slm < np.sum(matchesMask[i*len(tem)+j][:,0]):
+            slm = np.sum(matchesMask[i*len(tem)+j][:,0])
             index = j
-        matchesMask[i*5+j] = list(matchesMask[i*5+j])
-    draw_params = dict(matchColor = (50, 100, 50), singlePointColor = (255,0,0), matchesMask = matchesMask[i*5 + index], flags = 0)
-    img3 = cv2.drawMatchesKnn(tem[index], kpt[index], tem1[i], kpt1[i], matches[i*5 + index], None, **draw_params)
+        matchesMask[i*len(tem)+j] = list(matchesMask[i*len(tem)+j])
+    draw_params = dict(matchColor = (50, 100, 50), singlePointColor = (255,0,0), matchesMask = matchesMask[i*len(tem) + index], flags = 0)
+    img3 = cv2.drawMatchesKnn(tem[index], kpt[index], tem1[i], kpt1[i], matches[i*len(tem) + index], None, **draw_params)
     cv2.imshow("Matches %d" % index, img3)
     print(slm)
     print(index)
     cv2.waitKey(0)
     cv2.destroyAllWindows()
 
-colores = ['verde', 'amarillo', 'rojo', 'apagado 1', 'apagado 2']
+colores = ['verde', 'amarillo', 'rojo','apagado 1', 'apagado 2','verde','rojo']
 cap= cv2.VideoCapture(0)
 slml = []
 il = []
@@ -102,7 +102,7 @@ while True:
     index = 0
     matches = []
     matchesMask = []
-    for j in range(5):
+    for j in range(7):
         matches.append(flann.knnMatch(dest[j], desf, k=2))
         matchesMask.append([[0,0] for k in range(len(matches[j]))])
         for k,(m,n) in enumerate(matches[j]):
@@ -114,11 +114,12 @@ while True:
             index = j
     slml.append(slm)
     il.append(index)
-    if len(slml) > 10:
+    if len(slml) > 9:
         slml.pop(0)
         il.pop(0)
-        slma = round(np.average(np.array(slml)))
-        ila = round(np.average(np.array(il)))
+        slma = round(np.median(np.array(slml)))
+        slmm = np.max(np.array(slml))
+        ila = il[slml.index(slmm)]
     font = cv2.FONT_HERSHEY_SIMPLEX
     org = (0,frame.shape[1] - 170)
     fontScale = 1
@@ -134,4 +135,3 @@ while True:
         
 cap.release()
 cv2.destroyAllWindows()
-

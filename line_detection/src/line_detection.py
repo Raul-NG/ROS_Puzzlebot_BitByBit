@@ -14,7 +14,7 @@ class Line_Detector:
         self.bridge = CvBridge()
         self.x_center = 640
         self.image_raw = None
-        self.dt = 0.1
+        self.dt = 0.3
         self.line = [0,0,0,0]
         self.lines = []
         self.cut_y = (int(3*720.0/4.0),720)
@@ -44,8 +44,8 @@ class Line_Detector:
             self.activate = False
 
     def timer_callback(self, time):
-        if not self.activate:
-            return
+        # if not self.activate:
+        #     return
         
         self.lines = []
         msg = Float32MultiArray()
