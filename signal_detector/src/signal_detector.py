@@ -1,15 +1,12 @@
 #!/usr/bin/env python
 
-from cv2 import KalmanFilter
 import rospy
 from std_msgs.msg import String
 from std_msgs.msg import Int32
 from sensor_msgs.msg import Image
-from geometry_msgs.msg import Twist
 from cv_bridge import CvBridge
 import numpy as np
 import cv2
-import math
 
 class Signal_Detector:
     def __init__(self):
@@ -25,7 +22,7 @@ class Signal_Detector:
         self.signals = ['no matches','continue','turn','round','no speed limit','stop']
         self.a = 0.9
         self.s_pred = 0
-        self.sigma_u = 1
+        self.sigma_u = 1.0
         self.M = 0
         self.s_hat = []
 
@@ -71,8 +68,10 @@ class Signal_Detector:
         for j in range(self.tml):
             matches.append(self.flann.knnMatch(self.dest[j], desf, k=2))
             matchesMask.append([[0,0] for k in range(len(matches[j]))])
-            for k,(m,n) in enumerate(matches[j]):
-                if m.distance < 0.7*n.distance:
+            for m_n in matches[j]:
+                if len(m_n) != 2:
+                    continue
+                elif m_n[0].distance < 0.7*m_n[1].distance:
                     matchesMask[j][k]=[1,0]
             matchesMask[j] = np.array(matchesMask[j])
             if slm < np.sum(matchesMask[j][:,0]):

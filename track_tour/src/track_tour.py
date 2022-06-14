@@ -1,7 +1,5 @@
 #!/usr/bin/env python
 
-from multiprocessing.dummy import active_children
-from signal import signal
 import rospy
 from geometry_msgs.msg import Twist
 from std_msgs.msg import Float32MultiArray
@@ -9,6 +7,7 @@ from std_msgs.msg import String
 from geometry_msgs.msg import Pose2D
 import numpy as np
 
+rep = 5
 class Track_tour:
     def __init__(self):
         self.dt = 0.1
@@ -66,39 +65,40 @@ class Track_tour:
 
     def pp_callback(self, msg):
         if msg.x == msg.y == msg.theta == 100:
-            for _ in range(10):
+            for _ in range(rep):
                 self.activate_msg.data = "PP_deactivate" #PP, LD, TL
                 self.activator_pub.publish(self.activate_msg)
-            for _ in range(10):
+            for _ in range(rep):
                 self.activate_msg.data = "LD_activate" #PP, LD, TL
                 self.activator_pub.publish(self.activate_msg)
             # self.msg_vel.linear.x = 0
             # self.msg_vel.angular.z = 0
 
     def signal_callback(self, msg):
-        if msg.data == "stop":
-            pass
-        elif msg.data == "continue":
-            pass
-        elif msg.data == "round":
-            pass
-        elif msg.data == "turn":
-            pass
-        elif msg.data == "no speed limit":
-            self.linear_speed = 0.12
-        elif msg.data == "No hay matches":
-            pass
+        pass
+        # if msg.data == "stop":
+        #     pass
+        # elif msg.data == "continue":
+        #     self.num_intersection = 0
+        # elif msg.data == "round":
+        #     pass
+        # elif msg.data == "turn":
+        #     self.num_intersection = 1
+        # elif msg.data == "no speed limit":
+        #     self.linear_speed = 0.12
+        # elif msg.data == "no":
+        #     self.num_intersection = -1
     
     def tl_callback(self, msg):
-        if msg.data[0] != self.num_intersection:
+        if msg.data[0] != 0:#self.num_intersection:
             return
         
         if msg.data[1:] == "green":
-            for _ in range(10):
+            for _ in range(rep):
                 self.activate_msg.data = "TL_deactivate" #PP, LD, TL
                 self.activator_pub.publish(self.activate_msg)
                 # punto 1 o punto 2
-            for _ in range(10):
+            for _ in range(rep):
                 self.activate_msg.data = "PP_activate"
                 self.activator_pub.publish(self.activate_msg)
 
@@ -142,17 +142,14 @@ class Track_tour:
                 x_proyection = self.x_center
             error_pixeles = self.x_center - x_proyection
             error_cm = error_pixeles * 0.065/100
-
             point = self.tp_robot_to_global(0.6,error_cm) if self.num_intersection == 0 else self.tp_robot_to_global(0.4,error_cm/2-0.25)
             self.pp_msg.x = point[0]
             self.pp_msg.y = point[1]
-            rospy.loginfo("intersection: "+str(self.num_intersection))
-            self.num_intersection += 1
             self.pp_pub.publish(self.pp_msg)
-            for _ in range(10):
+            for _ in range(rep):
                 self.activate_msg.data = "LD_deactivate"
                 self.activator_pub.publish(self.activate_msg)
-            for _ in range(10):
+            for _ in range(rep):
                 self.activate_msg.data = "TL_activate"
                 self.activator_pub.publish(self.activate_msg)
         else:

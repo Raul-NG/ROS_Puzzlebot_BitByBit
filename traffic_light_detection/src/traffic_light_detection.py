@@ -40,7 +40,7 @@ class Traffic_Light_Detector:
         # if not self.activate: 
         #     return
         self.color_check(0)
-        self.color_check(1)
+        # self.color_check(1)
 
     def color_check(self,semaforo_num):
         hsv = cv2.cvtColor(self.image_raw, cv2.COLOR_BGR2HSV)[self.cut_y[0]:self.cut_y[1],self.cut_x[semaforo_num][0]:self.cut_x[semaforo_num][1]]
