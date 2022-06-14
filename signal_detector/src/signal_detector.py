@@ -22,13 +22,13 @@ class Signal_Detector:
         self.tml = 5
         self.orb = cv2.ORB_create(500)
         self.orb2 = cv2.ORB_create(1000)
-        self.flann = cv2.FlannBasedMatcher(dict(algorithm = 0, trees = 3), dict(checks = 1000))
+        self.flann = cv2.FlannBasedMatcher(dict(algorithm = 6, table_number = 12, key_size = 12, multi_probe_level = 2), dict(checks = 100))
         self.dest = []
         for i in range(self.tml):
             self.tem.append(cv2.imread('/home/puzzlebot/catkin_ws/src/signal_detector/src/%d.jpeg' % i))
             self.tem[i] = np.pad(cv2.pyrDown(self.tem[i]), pad_width=[(50, 50),(50, 50),(0, 0)], mode='constant',constant_values=(255))
             _, destemp = self.orb.detectAndCompute(self.tem[i], None)
-            self.dest.append(np.float32(destemp))
+            self.dest.append(destemp)
         self.signals = ['stop', 'continue', 'round','turn', 'no speed limit','no']
         self.slml = []
         self.il = []
@@ -51,7 +51,7 @@ class Signal_Detector:
         
     def check_trff_lgt(self):
         _, desf = self.orb.detectAndCompute(self.image_raw, None)
-        desf = np.array(np.float32(desf))
+        #desf = np.array(np.float32(desf))
         slm = 0
         index = 0
         matches = []
