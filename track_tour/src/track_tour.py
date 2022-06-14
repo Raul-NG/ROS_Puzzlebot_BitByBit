@@ -64,6 +64,7 @@ class Track_tour:
         self.theta = msg.theta
 
     def pp_callback(self, msg):
+        rospy.loginfo("x: "+str(self.X)+" y: "+str(self.Y))
         if msg.x == msg.y == msg.theta == 100:
             for _ in range(rep):
                 self.activate_msg.data = "PP_deactivate" #PP, LD, TL
@@ -141,7 +142,7 @@ class Track_tour:
             except:
                 x_proyection = self.x_center
             error_pixeles = self.x_center - x_proyection
-            error_cm = error_pixeles * 0.065/100
+            error_cm = error_pixeles * 0.06/100
             point = self.tp_robot_to_global(0.6,error_cm) if self.num_intersection == 0 else self.tp_robot_to_global(0.4,error_cm/2-0.25)
             self.pp_msg.x = point[0]
             self.pp_msg.y = point[1]

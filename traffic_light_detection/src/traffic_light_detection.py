@@ -37,8 +37,8 @@ class Traffic_Light_Detector:
         self.timer = rospy.Timer(rospy.Duration(self.dt), self.timer_callback)
 
     def timer_callback(self, time):
-        # if not self.activate: 
-        #     return
+        if not self.activate: 
+            return
         self.color_check(0)
         # self.color_check(1)
 
@@ -50,14 +50,14 @@ class Traffic_Light_Detector:
         self.index = -1;
         den_ant = 0
         for color, mask in enumerate(masks):
-            erode = cv2.erode(mask, np.array([[0,1,0],[0,1,0],[0,1,1]], np.uint8), iterations = 2)
-            # self.dilate = cv2.dilate(erode, np.ones((5, 5)), iterations = 4)
+            erode = cv2.erode(mask, np.array([[0,1,0],[0,1,1],[0,1,1]], np.uint8), iterations = 2)
+            self.dilate = cv2.dilate(erode, np.ones((3, 3)), iterations = 4)
             self.mask_publishers[color].publish(self.bridge.cv2_to_imgmsg(mask))
             
             #color density
             den = np.sum(mask)/((self.cut_x[semaforo_num][1]-self.cut_x[semaforo_num][0])*(self.cut_y[1] - self.cut_y[0])*255)
             # rospy.loginfo("Den "+self.colors[color]+": "+str(den))
-            if den > den_ant and den > 0.003:
+            if den > den_ant and den > 0.002:
                 den_ant = den
                 self.index = color
         self.traffic_light_pub.publish(str(semaforo_num)+self.colors[self.index])

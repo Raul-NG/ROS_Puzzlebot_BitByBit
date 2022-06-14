@@ -13,9 +13,7 @@ class Signal_Detector:
         self.activate = True
         self.bridge = CvBridge()
         self.image_raw = None
-        self.dt = 0.07
-        self.cut_y = (int(3*720.0/4.0),720)
-        self.cut_x = (0,1280)
+        self.dt = 1
         self.tem = []
 
         #Kalman Filter Variables
@@ -27,16 +25,15 @@ class Signal_Detector:
         self.s_hat = []
 
         self.tml = 5
-        self.orb = cv2.ORB_create(500)
-        self.orb2 = cv2.ORB_create(1000)
-        self.flann = cv2.FlannBasedMatcher(dict(algorithm = 6, table_number = 12, key_size = 12, multi_probe_level = 2), dict(checks = 100))
+        self.orb = cv2.ORB_create(1500)
+        self.orb2 = cv2.ORB_create(2000)
+        self.flann = cv2.FlannBasedMatcher(dict(algorithm = 6, table_number = 12, key_size = 12, multi_probe_level = 2), dict(checks = 1000))
         self.dest = []
         for i in range(self.tml):
             self.tem.append(cv2.imread('/home/puzzlebot/catkin_ws/src/signal_detector/src/Signal_%d.jpeg' % i))
-            self.tem[i] = np.pad(cv2.pyrDown(self.tem[i]), pad_width=[(50, 50),(50, 50),(0, 0)], mode='constant',constant_values=(255))
+            self.tem[i] = np.pad(self.tem[i], pad_width=[(50, 50),(50, 50),(0, 0)], mode='constant',constant_values=(255)) #cv2.pyrDown(self.tem[i])
             _, destemp = self.orb.detectAndCompute(self.tem[i], None)
             self.dest.append(destemp)
-        self.signals = ['stop', 'continue', 'round','turn', 'no speed limit','no']
         self.slml = []
         self.il = []
         self.ila = ""
@@ -59,7 +56,7 @@ class Signal_Detector:
         self.check_trff_lgt()
         
     def check_trff_lgt(self):
-        _, desf = self.orb.detectAndCompute(self.image_raw, None)
+        _, desf = self.orb2.detectAndCompute(self.image_raw, None)
         #desf = np.array(np.float32(desf))
         slm = 0
         signal_index = 0
@@ -68,7 +65,9 @@ class Signal_Detector:
         for j in range(self.tml):
             matches.append(self.flann.knnMatch(self.dest[j], desf, k=2))
             matchesMask.append([[0,0] for k in range(len(matches[j]))])
+            k = -1
             for m_n in matches[j]:
+                k += 1
                 if len(m_n) != 2:
                     continue
                 elif m_n[0].distance < 0.7*m_n[1].distance:
