@@ -54,8 +54,8 @@ class Image_processor:
         for color, mask in enumerate(masks):
             #mask
             cut = mask[self.cut_y[0]:self.cut_y[1],self.cut_x[0]:self.cut_x[1]]
-            erode = cv2.erode(cut, np.ones((5, 5),iterations = 6)
-            self.dilate = cv2.dilate(erode, np.ones((5, 5), iterations = 6)
+            erode = cv2.erode(cut, np.ones((5, 5)),iterations = 6)
+            self.dilate = cv2.dilate(erode, np.ones((5, 5)), iterations = 6)
             self.mask_publishers[color].publish(self.bridge.cv2_to_imgmsg(cv2.bitwise_not(self.dilate)))
             
             #color density

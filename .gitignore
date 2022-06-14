@@ -1,2 +1,4 @@
 *.txt
 *.xml
+*.DS_store
+
