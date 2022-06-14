@@ -23,7 +23,7 @@ class Track_tour:
         self.pp_msg = Pose2D()
         self.msg_vel = Twist()
         self.pp_turn = 0
-        self.line_proyection = []
+        self.num_intersection = 0
 
         self.X = 0
         self.Y = 0
@@ -66,10 +66,12 @@ class Track_tour:
 
     def pp_callback(self, msg):
         if msg.x == msg.y == msg.theta == 100:
-            self.activate_msg.data = "PP_deactivate" #PP, LD, TL
-            self.activator_pub.publish(self.activate_msg)
-            self.activate_msg.data = "LD_activate" #PP, LD, TL
-            self.activator_pub.publish(self.activate_msg)
+            for _ in range(10):
+                self.activate_msg.data = "PP_deactivate" #PP, LD, TL
+                self.activator_pub.publish(self.activate_msg)
+            for _ in range(10):
+                self.activate_msg.data = "LD_activate" #PP, LD, TL
+                self.activator_pub.publish(self.activate_msg)
             # self.msg_vel.linear.x = 0
             # self.msg_vel.angular.z = 0
 
@@ -83,12 +85,29 @@ class Track_tour:
         elif msg.data == "turn":
             pass
         elif msg.data == "no speed limit":
-            pass
+            self.linear_speed = 0.12
         elif msg.data == "No hay matches":
             pass
     
     def tl_callback(self, msg):
-        if msg.data == "Rojo":
+        if msg.data[0] != self.num_intersection:
+            return
+        
+        if msg.data[1:] == "green":
+            for _ in range(10):
+                self.activate_msg.data = "TL_deactivate" #PP, LD, TL
+                self.activator_pub.publish(self.activate_msg)
+                # punto 1 o punto 2
+            for _ in range(10):
+                self.activate_msg.data = "PP_activate"
+                self.activator_pub.publish(self.activate_msg)
+
+            #functionPP(action)
+        else:
+            self.msg_vel.linear.x = 0
+            self.msg_vel.angular.z = 0
+        """
+        if msg.data == "red":
             self.msg_vel.linear.x = 0
             self.msg_vel.angular.z = 0
         else:
@@ -111,33 +130,31 @@ class Track_tour:
             # self.pp_pub.publish(self.pp_msg)
             self.activate_msg.data = "PP_activate"
             self.activator_pub.publish(self.activate_msg)
+        """
 
     def line_callback(self, msg):
         if msg.data[0] < 0:
-            m = (self.line[3] - self.line[1])/(self.line[2] - self.line[0])
+            # self.num_intersection = 0 if self.Y <= 0.2 else 1
             try:
-                x_proyection = -self.line[1]/m + self.line[0]
+                m = (self.line[3] - self.line[1])/(self.line[2] - self.line[0])
+                x_proyection = (self.num_intersection*360-self.line[1])/m + self.line[0]
             except:
                 x_proyection = self.x_center
             error_pixeles = self.x_center - x_proyection
-            error_cm = error_pixeles * 0.08/100
-            # for i in range(0,721-y2):   #Fue la unica forma que se me ocurrio unu 
-            #     self.line_proyection([y2/m,y2])
-            #     y2+=1
-            # end_point = self.line_proyection[-1]
-            # rule_of_3 = 0.08*100    #de pixeles a metros
-            # error_horizontal = self.x_center - end_point[0]
-            # error = error_horizontal*rule_of_3
-            #pp_new_point = [0.5, error] #Mandar esto, perdon ya me tenia que ir xd
-            point = self.tp_robot_to_global(0.6,error_cm)
+            error_cm = error_pixeles * 0.065/100
+
+            point = self.tp_robot_to_global(0.6,error_cm) if self.num_intersection == 0 else self.tp_robot_to_global(0.4,error_cm/2-0.25)
             self.pp_msg.x = point[0]
             self.pp_msg.y = point[1]
-            rospy.loginfo("x: 0.5"+" y: "+str(error_cm))
+            rospy.loginfo("intersection: "+str(self.num_intersection))
+            self.num_intersection += 1
             self.pp_pub.publish(self.pp_msg)
-            self.activate_msg.data = "LD_deactivate"
-            self.activator_pub.publish(self.activate_msg)
-            self.activate_msg.data = "TL_activate"
-            self.activator_pub.publish(self.activate_msg)
+            for _ in range(10):
+                self.activate_msg.data = "LD_deactivate"
+                self.activator_pub.publish(self.activate_msg)
+            for _ in range(10):
+                self.activate_msg.data = "TL_activate"
+                self.activator_pub.publish(self.activate_msg)
         else:
             self.line = msg.data
             kp = 0.005 * self.linear_speed
