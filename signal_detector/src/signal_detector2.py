@@ -2,24 +2,23 @@
 
 import rospy 
 from std_msgs.msg import String 
-from sensor_msgs.msg import Image 
-from geometry_msgs.msg import Twist 
+from sensor_msgs.msg import Image
 from cv_bridge import CvBridge 
 import numpy as np 
-import cv2 
-from std_msgs.msg import UInt8
-import math 
+import cv2
 
 class Signal_Detector: 
     def __init__(self): 
         self.activate = True
-        self.time_sleep = True 
+        self.time_sleep = True
         self.bridge = CvBridge() 
         self.image_raw = None 
         self.dt = 0.05
         self.error_count = 0
-        self.tem = [] 
+        self.signals = ['continue','turn','round','no_speed_limit','stop','no matches'] 
 
+        self.tem = []
+        self.tem_canny = [] 
         self.tml = 5 
         self.orb = cv2.ORB_create(500) 
         # self.orb2 = cv2.ORB_create(1000) 
@@ -28,27 +27,48 @@ class Signal_Detector:
         for i in range(self.tml):
             self.tem.append(cv2.imread('/home/puzzlebot/catkin_ws/src/signal_detector/src/Signal_%d.jpeg' % i))
             self.tem[i] = np.pad(cv2.pyrDown(self.tem[i]), pad_width=[(50, 50),(50, 50),(0, 0)], mode='constant',constant_values=(255))
+
+            gray_image = cv2.cvtColor(self.tem[i] , cv2.COLOR_BGR2GRAY)
+            _,msk = cv2.threshold(gray_image,150,255, cv2.THRESH_BINARY)
+            # msk = cv2.GaussianBlur(msk, (9,9), cv2.BORDER_DEFAULT)
+            # msk = cv2.dilate(msk, np.ones((2, 2), np.uint8), iterations = 1)
+            # msk = cv2.erode(msk, np.ones((2, 2), np.uint8), iterations = 1)
+            msk = cv2.Canny(msk, 70, 100)
+            msk = cv2.dilate(msk, np.ones((5, 5), np.uint8), iterations = 1)
+            self.tem_canny.append(msk)
+            
             _, destemp = self.orb.detectAndCompute(self.tem[i], None) 
             self.dest.append(np.float32(destemp)) 
-        self.signals = ['continue','turn','round','no speed limit','stop','no matches'] 
         self.slml = [] 
         self.il = [] 
         self.ila = "" 
         self.slmp = 0 
         self.sizel = 15
         self.last = 'no matches'
+
         rospy.init_node('signal_detector') 
         rospy.Subscriber('/video_source/raw', Image, self.img_callback)
         self.signal_pub = rospy.Publisher('/signal_detection', String, queue_size=10)
+        self.templates_pubs = [rospy.Publisher('/signal_detection/tem/'+tem, Image, queue_size=10) for tem in self.signals[:5]]
+        self.image_canny_pub = rospy.Publisher('/signal_detection/image_canny', Image, queue_size=10)
         self.rate = rospy.Rate(1/self.dt)
         self.timer = rospy.Timer(rospy.Duration(self.dt), self.timer_callback)
         rospy.on_shutdown(self.stop) 
 
     def timer_callback(self, time): 
         self.time_sleep = True
+        for num, canny in enumerate(self.tem_canny):
+            self.templates_pubs[num].publish(self.bridge.cv2_to_imgmsg(canny))
 
     def img_callback(self,msg): 
         self.image_raw = self.bridge.imgmsg_to_cv2(msg, "passthrough")
+        gray_image = cv2.cvtColor(self.image_raw , cv2.COLOR_BGR2GRAY)
+        _,msk = cv2.threshold(gray_image,100,255, cv2.THRESH_BINARY)
+        msk = cv2.GaussianBlur(msk, (5,5), cv2.BORDER_DEFAULT)
+        msk = cv2.erode(msk, np.ones((3, 3), np.uint8), iterations = 2)
+        msk = cv2.Canny(msk, 150, 200)
+        msk = cv2.dilate(msk, np.ones((3, 3), np.uint8), iterations = 1)
+        self.image_canny_pub.publish(self.bridge.cv2_to_imgmsg(msk))
 
     def run(self):
         while True:
