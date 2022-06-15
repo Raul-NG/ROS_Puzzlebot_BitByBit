@@ -1,27 +1,33 @@
 #!/usr/bin/env python
 
+from pytz import NonExistentTimeError
 import rospy
 from geometry_msgs.msg import Twist
 from std_msgs.msg import Float32MultiArray
 from std_msgs.msg import String
+from std_msgs.msg import Bool
 from geometry_msgs.msg import Pose2D
 import numpy as np
 
 rep = 5
 class Track_tour:
     def __init__(self):
+        #Track tour
         self.dt = 0.1
-        self.error = 0.0
-        self.x_center = 640
         self.linear_speed = 0.04  
         self.angular_speed = 0.0
         self.activate_msg = String()
-        self.activate_ant = ""
-        self.line = [640,640,640,640]
-        self.odometry = Pose2D()
-        self.pp_msg = Pose2D()
         self.msg_vel = Twist()
-        self.pp_turn = 0
+        self.at_intersection = False
+        self.good_orientation = None
+
+        #Line detection
+        self.line = [640,640,640,640]
+        self.error = 0.0
+        self.x_center = 640
+
+        #Traffic light detection
+        self.pp_msg = Pose2D()
         self.num_intersection = 0
         self.con_flag = True
 
@@ -30,31 +36,32 @@ class Track_tour:
         self.theta = 0
 
         rospy.init_node('track_tour')
-        rospy.Subscriber('/line_detector/line', Float32MultiArray, self.line_callback)
-        rospy.Subscriber('/line_detector/check', Float32MultiArray, self.line_callback)
         rospy.Subscriber('/odom', Pose2D, self.odom_callback)
-        rospy.Subscriber('/traffic_light/first/detection', String, self.tl1_callback)
-        rospy.Subscriber('/traffic_light/second/detection', String, self.tl2_callback)
+        rospy.Subscriber('/line_detector/line', Float32MultiArray, self.line_callback)
+        rospy.Subscriber('/line_detector/check', Bool, self.intersection_callback)
+        rospy.Subscriber('/traffic_light/first/detection', String, self.tl0_callback)
+        rospy.Subscriber('/traffic_light/second/detection', String, self.tl1_callback)
+        rospy.Subscriber('/signal_detection', String, self.signal_callback)
+        rospy.Subscriber('/pure_pursuit/check', Bool, self.pp_check_callback)
 
-        rospy.Subscriber('/pp_point', Pose2D, self.pp_callback)
-        rospy.Subscriber('/signal', String, self.signal_callback)
         self.move_pub = rospy.Publisher('/cmd_vel', Twist, queue_size=10)
         self.activator_pub = rospy.Publisher('/activator', String, queue_size=10)
-        self.pp_pub = rospy.Publisher('/pp_point', Pose2D, queue_size=10)
+        self.pp_pub = rospy.Publisher('/pure_pursuit/point', Pose2D, queue_size=10)
         self.rate = rospy.Rate(1/self.dt)
         self.timer = rospy.Timer(rospy.Duration(self.dt), self.timer_callback)
-
-        # self.activate_msg.data = "OD_activate"
-        # self.activator_pub.publish(self.activate_msg)
-        self.activate_msg.data = "LD_activate" #PP, LD, TL
-        self.activator_pub.publish(self.activate_msg)
+        # self.send_activator("OD_activate")
+        # self.send_activator("LD_activate")
         rospy.on_shutdown(self.stop)
 
     def tp_robot_to_global(self, x_robot, y_robot):
         R = np.array([[np.cos(self.theta), -np.sin(self.theta)], [np.sin(self.theta), np.cos(self.theta)]])
         d = np.array([[self.X],[self.Y]])
         return np.transpose(R.dot(np.array([[x_robot],[y_robot]])) + d)[0].tolist()
-
+    
+    def send_activator(self, msg):
+        self.activate_msg.data = msg
+        self.activator_pub.publish(self.activate_msg)
+    
     def timer_callback(self, time):
         if self.activate_msg.data != "PP_activate":
             self.move_pub.publish(self.msg_vel)
@@ -67,36 +74,74 @@ class Track_tour:
         self.Y = msg.y
         self.theta = msg.theta
 
-    def pp_callback(self, msg):
-        rospy.loginfo("x: "+str(self.X)+" y: "+str(self.Y))
-        if msg.x == msg.y == msg.theta == 100:
-            for _ in range(rep):
-                self.activate_msg.data = "PP_deactivate" #PP, LD, TL
-                self.activator_pub.publish(self.activate_msg)
-            for _ in range(rep):
-                self.activate_msg.data = "LD_activate" #PP, LD, TL
-                self.activator_pub.publish(self.activate_msg)
-            # self.msg_vel.linear.x = 0
-            # self.msg_vel.angular.z = 0
+    def pp_check_callback(self, msg):
+        if msg.data:
+            # for _ in range(rep):
+            self.send_activator("LD_activate")
 
     def signal_callback(self, msg):
-        if msg.data == "continue" and self.con_flag:
-            self.num_intersection = 0
-            self.con_flag = False
-            self.spl_flag = True
-        elif msg.data == "no speed limit" and self.spl_flag:
-            self.spl_flag = False
-            self.linear_speed = 0.12
-            self.turn_flag = True
-        elif msg.data == "turn" and self.turn_flag:
-            self.num_intersection = 1
-            self.turn_flag = False
-            self.stop_flag = True
-        elif msg.data == "stop" and self.stop_flag:
-            self.stop_flag = False
-            self.msg_vel.linear.x = 0
-            self.msg_vel.angular.z = 0
-            self.con_flag = True
+        # if self.activate_msg != "PP_activate" and self.msg_vel.linear.x == 0 and self.msg_vel.angular.z == 0:
+        if self.at_intersection:
+            if msg.data == "continue" and self.con_flag:
+                self.con_flag = False
+                self.turn_flag = True
+                rospy.loginfo("Signal: "+msg.data)
+                self.num_intersection = 0
+                
+                if self.good_orientation is not None:
+                    angle = self.good_orientation - self.theta
+                    R = np.array([[np.cos(angle), -np.sin(angle)], [np.sin(angle), np.cos(angle)]])
+                    point = np.transpose(R.dot(np.array([[0.6],[0.0]])))[0].toList()
+                    point = self.tp_robot_to_global(point[0],point[1])
+                    
+                else:
+                    try:
+                        m = (self.line[3] - self.line[1])/(self.line[2] - self.line[0])
+                        x_proyection = -self.line[1]/m + self.line[0]
+                    except:
+                        x_proyection = self.x_center
+                    error_pixeles = self.x_center - x_proyection
+                    error_cm = error_pixeles * 0.06/100
+                    point = self.tp_robot_to_global(0.6,error_cm)
+
+                self.pp_msg.x = point[0]
+                self.pp_msg.y = point[1]
+                self.pp_pub.publish(self.pp_msg)
+                self.send_activator("TL_activate")
+                self.at_intersection = False
+
+            elif msg.data == "turn" and self.turn_flag:
+                self.turn_flag = False
+                self.con_flag = True
+                rospy.loginfo("Signal: "+msg.data)
+                self.num_intersection = 1
+                try:
+                    m = (self.line[3] - self.line[1])/(self.line[2] - self.line[0])
+                    x_proyection = (360-self.line[1])/m + self.line[0]
+                except:
+                    x_proyection = self.x_center
+                error_pixeles = self.x_center - x_proyection
+                error_cm = error_pixeles * 0.06/100
+                point = self.tp_robot_to_global(0.4,error_cm/2-0.25)
+                self.pp_msg.x = point[0]
+                self.pp_msg.y = point[1]
+                self.pp_pub.publish(self.pp_msg)
+                self.send_activator("TL_activate")
+                self.at_intersection = False
+
+        # elif self.msg_vel.linear.x != 0 and self.msg_vel.angular.z != 0:
+        else:
+            if msg.data == "no speed limit" and self.spl_flag:
+                self.spl_flag = False
+                self.linear_speed = 0.12
+                self.stop_flag = True
+                rospy.loginfo("Signal: "+msg.data)
+            elif msg.data == "stop" and self.stop_flag:
+                self.stop_flag = False
+                self.msg_vel.linear.x = 0
+                self.msg_vel.angular.z = 0
+                self.spl_flag = True
+                rospy.loginfo("Signal: "+msg.data)
         # if msg.data == "stop":
         #     pass
         # elif msg.data == "continue":
@@ -109,97 +154,40 @@ class Track_tour:
         #     self.linear_speed = 0.12
         # elif msg.data == "no":
         #     self.num_intersection = -1
+
+    def tl0_callback(self, msg):
+        if msg.data == "green" and self.num_intersection == 0:
+            # for _ in range(rep):
+            self.send_activator("TL_deactivate")
+            self.send_activator("PP_activate")
+            self.num_intersection = -1
+
     def tl1_callback(self, msg):
-        if msg.data == "green":
-            for _ in range(rep):
-                self.activate_msg.data = "TL_deactivate" #PP, LD, TL
-                self.activator_pub.publish(self.activate_msg)
-                # punto 1 o punto 2
-            for _ in range(rep):
-                self.activate_msg.data = "PP_activate"
-                self.activator_pub.publish(self.activate_msg)
-
-            #functionPP(action)
-        else:
-            self.msg_vel.linear.x = 0
-            self.msg_vel.angular.z = 0
-            rospy.loginfo("Detener")
-
-    def tl2_callback(self, msg):
-        if msg.data == "green":
-            for _ in range(rep):
-                self.activate_msg.data = "TL_deactivate" #PP, LD, TL
-                self.activator_pub.publish(self.activate_msg)
-                # punto 1 o punto 2
-            for _ in range(rep):
-                self.activate_msg.data = "PP_activate"
-                self.activator_pub.publish(self.activate_msg)
-
-            #functionPP(action)
-        else:
-            self.msg_vel.linear.x = 0
-            self.msg_vel.angular.z = 0
-            rospy.loginfo("Detener")
-        """
-        if msg.data == "red":
-            self.msg_vel.linear.x = 0
-            self.msg_vel.angular.z = 0
-        else:
-            self.activate_msg.data = "TL_deactivate" #PP, LD, TL
-            self.activator_pub.publish(self.activate_msg)
-            # if self.pp_turn == 0:
-            #     x = 0.4
-            #     y = -(self.line[2]-self.line[0])/(self.line[3]-self.line[1])()
-            #     # point = [1.0, 0.0]
-            #     self.pp_msg.theta = 0.0
-            # #     self.pp_turn = 1
-            # # elif self.pp_turn == 1:
-            # #     x = 0.30
-            # #     y = -0.20
-            # #     self.pp_msg.theta = -np.pi/2
-            # #     self.pp_turn = 0
-            # point = self.tp_robot_to_global(x,y)
-            # self.pp_msg.x = point[0]
-            # self.pp_msg.y = point[1]
-            # self.pp_pub.publish(self.pp_msg)
-            self.activate_msg.data = "PP_activate"
-            self.activator_pub.publish(self.activate_msg)
-        """
+        if msg.data == "green" and self.num_intersection == 1:
+            # for _ in range(rep):
+            self.send_activator("TL_deactivate")
+            self.send_activator("PP_activate")
+            self.num_intersection = -1
 
     def line_callback(self, msg):
-        if msg.data[0] < 0 and self.num_intersection != -1:
-            # self.num_intersection = 0 if self.Y <= 0.2 else 1
+        self.line = msg.data
+        if msg.data[0] == msg.data[2] and self.good_orientation is None:
+            self.good_orientation = self.theta
+        kp = 0.005 * self.linear_speed*0.7 
+        kd = 0.0003 * self.linear_speed
+        x_b = self.line[0] if self.line[1] <= self.line[3] else self.line[2]
+        error_ant = self.error
+        self.error = self.x_center - x_b
+        self.angular_speed = kp*self.error + kd*(self.error - error_ant)/self.dt
+        self.msg_vel.linear.x = self.linear_speed
+        self.msg_vel.angular.z = self.angular_speed
+
+    def intersection_callback(self, msg):
+        if msg.data:
             self.msg_vel.linear.x = 0
             self.msg_vel.angular.z = 0
-            rospy.loginfo("Detener")
-            try:
-                m = (self.line[3] - self.line[1])/(self.line[2] - self.line[0])
-                x_proyection = (self.num_intersection*360-self.line[1])/m + self.line[0]
-            except:
-                x_proyection = self.x_center
-            error_pixeles = self.x_center - x_proyection
-            error_cm = error_pixeles * 0.06/100
-            point = self.tp_robot_to_global(0.6,error_cm) if self.num_intersection == 0 else self.tp_robot_to_global(0.4,error_cm/2-0.25)
-            self.pp_msg.x = point[0]
-            self.pp_msg.y = point[1]
-            self.pp_pub.publish(self.pp_msg)
-            self.num_intersection = -1
-            for _ in range(rep):
-                self.activate_msg.data = "LD_deactivate"
-                self.activator_pub.publish(self.activate_msg)
-            for _ in range(rep):
-                self.activate_msg.data = "TL_activate"
-                self.activator_pub.publish(self.activate_msg)  
-        else:
-            self.line = msg.data
-            kp = 0.005 * self.linear_speed*0.7 
-            kd = 0.0003 * self.linear_speed
-            x_b = self.line[0] if self.line[1] <= self.line[3] else self.line[2]
-            error_ant = self.error
-            self.error = self.x_center - x_b
-            self.angular_speed = kp*self.error + kd*(self.error - error_ant)/self.dt
-            self.msg_vel.linear.x = self.linear_speed
-            self.msg_vel.angular.z = self.angular_speed
+            self.at_intersection = True
+
 
     def run(self):
         rospy.spin()
