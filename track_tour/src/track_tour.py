@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 
-from pytz import NonExistentTimeError
 import rospy
 from geometry_msgs.msg import Twist
 from std_msgs.msg import Float32MultiArray
