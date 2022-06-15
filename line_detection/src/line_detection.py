@@ -11,6 +11,8 @@ import cv2
 
 class Line_Detector:
     def __init__(self):
+        self.activate = True
+        self.time_sleep = True
         self.bridge = CvBridge()
         self.x_center = 640
         self.image_raw = None
@@ -19,14 +21,11 @@ class Line_Detector:
         self.lines = []
         self.cut_y = (int(3*720.0/4.0),720)
         self.cut_x = (0,1280)
-        # self.cut_x = (320,960)
         self.edges = None
-        self.activate = True
 
-        rospy.init_node('Line_Detector')
+        rospy.init_node('line_detector')
         rospy.Subscriber('/video_source/raw', Image, self.img_callback)
         rospy.Subscriber('/activator', String, self.activator_callback)
-        # rospy.Subscriber('/odom', Pose2D, self.odom_callback)
         self.edges_pub = rospy.Publisher('/line_detector/image/edges', Image, queue_size=10)
         self.lines_pub = rospy.Publisher('/line_detector/image/lines', Image, queue_size=10)
         self.line_pub = rospy.Publisher('/line_detector/line', Float32MultiArray, queue_size=10)
@@ -90,23 +89,21 @@ class Line_Detector:
 
     def run(self):
         while True:
-            if self.activate and self.timer_sleep:
-                self.timer_sleep = False
+            if self.activate and self.time_sleep and self.image_raw is not None:
+                self.time_sleep = False
                 self.lines = []
                 msg = Float32MultiArray()
                 for _ in range(2):
                     self.detect_lines()
-
                 if len(self.lines) > 70:
-                    msg.data = [-1, -1, -1, -1]
-                    self.line_detector_pub.publish(msg)
+                    self.check_pub.publish(True)
+                    self.activate = False
                 else:
                     self.choose_line()
                     msg.data = [self.line[i] for i in range(4)]
-                    self.line_detector_pub.publish(msg)
-
+                    self.check_pub.publish(False)
+                    self.line_pub.publish(msg)
                 self.show_lines()
-
     
     def stop(self):
         rospy.loginfo("Stopping line detection.")
@@ -114,9 +111,9 @@ class Line_Detector:
 
 if __name__ == '__main__':
     line_detector = Line_Detector()
-    try:
-        line_detector.run()
-    except:
-        pass
+    # try:
+    line_detector.run()
+    # except:
+    #     rospy.loginfo("Error LD")
 
 
