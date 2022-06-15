@@ -37,7 +37,7 @@ class Signal_Detector:
             msk = cv2.dilate(msk, np.ones((5, 5), np.uint8), iterations = 1)
             self.tem_canny.append(msk)
             
-            _, destemp = self.orb.detectAndCompute(self.tem[i], None) 
+            _, destemp = self.orb.detectAndCompute(self.tem_canny[i], None) 
             self.dest.append(np.float32(destemp)) 
         self.slml = [] 
         self.il = [] 
@@ -61,14 +61,15 @@ class Signal_Detector:
             self.templates_pubs[num].publish(self.bridge.cv2_to_imgmsg(canny))
 
     def img_callback(self,msg): 
-        self.image_raw = self.bridge.imgmsg_to_cv2(msg, "passthrough")
-        gray_image = cv2.cvtColor(self.image_raw , cv2.COLOR_BGR2GRAY)
+        image = self.bridge.imgmsg_to_cv2(msg, "passthrough")
+        gray_image = cv2.cvtColor(image , cv2.COLOR_BGR2GRAY)
         _,msk = cv2.threshold(gray_image,100,255, cv2.THRESH_BINARY)
         msk = cv2.GaussianBlur(msk, (5,5), cv2.BORDER_DEFAULT)
         msk = cv2.erode(msk, np.ones((3, 3), np.uint8), iterations = 2)
         msk = cv2.Canny(msk, 150, 200)
         msk = cv2.dilate(msk, np.ones((3, 3), np.uint8), iterations = 1)
         self.image_canny_pub.publish(self.bridge.cv2_to_imgmsg(msk))
+        self.image_raw = msk
 
     def run(self):
         while True:
@@ -91,12 +92,12 @@ class Signal_Detector:
                         if slm < np.sum(matchesMask[j][:,0]): 
                             slm = np.sum(matchesMask[j][:,0]) 
                             index = j 
-                        if slm == 0: # Possible bug
-                            index = -1 
                     except:
                         rospy.loginfo("Error: "+str(self.error_count))
                         self.error_count += 1
-                
+                if slm == 0: # Possible bug
+                    index = -1 
+                self.signal_pub.publish(self.signals[index]+", "+"slmp: "+str(self.slmp)) 
                 self.slml.append(slm) 
                 self.il.append(index) 
                 if len(self.slml) > self.sizel: 
@@ -108,11 +109,12 @@ class Signal_Detector:
                 self.ila = self.signals[self.ilmo] 
                 self.ilma = round(np.median(np.array(self.il))) 
 
-                if (self.ila != "stop" or self.slmp >= 3.0) and self.last == self.ila and self.ilma == self.ilmo and np.max(counts) > 13:  
-                    self.signal_pub.publish(self.ila+", "+"slmp: "+str(self.slmp)) 
+                self.signal_pub.publish(self.ila+", "+"slmp: "+str(self.slmp)) 
+                # if (self.ila != "stop" or self.slmp >= 3.0) and self.last == self.ila and self.ilma == self.ilmo and np.max(counts) > 13:  
+                #     self.signal_pub.publish(self.ila+", "+"slmp: "+str(self.slmp)) 
                 
-                self.signal_pub.publish("No hay matches, "+"slmp: "+str(self.slmp))
-                self.last = self.ila
+                # self.signal_pub.publish("No hay matches, "+"slmp: "+str(self.slmp))
+                # self.last = self.ila
     
     def stop(self): 
         rospy.loginfo("Stopping signal detector.") 
