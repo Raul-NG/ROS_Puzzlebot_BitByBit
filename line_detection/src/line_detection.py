@@ -2,8 +2,8 @@
 
 import rospy
 from sensor_msgs.msg import Image
-from geometry_msgs.msg import Twist
 from std_msgs.msg import String
+from std_msgs.msg import Bool
 from std_msgs.msg import Float32MultiArray
 from cv_bridge import CvBridge
 import numpy as np
@@ -21,15 +21,16 @@ class Line_Detector:
         self.cut_x = (0,1280)
         # self.cut_x = (320,960)
         self.edges = None
-        self.activate = False
+        self.activate = True
 
         rospy.init_node('Line_Detector')
         rospy.Subscriber('/video_source/raw', Image, self.img_callback)
         rospy.Subscriber('/activator', String, self.activator_callback)
         # rospy.Subscriber('/odom', Pose2D, self.odom_callback)
-        self.edges_pub = rospy.Publisher('/img_properties/edges', Image, queue_size=10)
-        self.lines_pub = rospy.Publisher('/img_properties/lines', Image, queue_size=10)
-        self.line_detector_pub = rospy.Publisher('/line_detector', Float32MultiArray, queue_size=10)
+        self.edges_pub = rospy.Publisher('/line_detector/image/edges', Image, queue_size=10)
+        self.lines_pub = rospy.Publisher('/line_detector/image/lines', Image, queue_size=10)
+        self.line_pub = rospy.Publisher('/line_detector/line', Float32MultiArray, queue_size=10)
+        self.check_pub = rospy.Publisher('/line_detector/check', Bool, queue_size=10)
         self.rate = rospy.Rate(1/self.dt)
         self.timer = rospy.Timer(rospy.Duration(self.dt), self.timer_callback)
         rospy.on_shutdown(self.stop)

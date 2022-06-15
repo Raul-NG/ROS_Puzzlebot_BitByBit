@@ -48,6 +48,7 @@ class Pure_pursuit:
         self.theta = msg.theta
 
     def point_callback(self, msg):
+        if msg.x == msg.y == msg.theta == 100: return
         self.desired_point_global = [msg.x, msg.y]
         self.desired_point_robot = self.tp_global_to_robot(msg.x, msg.y)
         self.desired_angle = msg.theta
@@ -66,8 +67,8 @@ class Pure_pursuit:
         return np.transpose(R_t.dot(np.array([[x_global],[y_global]]) - d))[0].tolist()
     
     def timer_callback(self, time):
-        # if not self.activate:
-        #     return
+        if not self.activate:
+            return
 
         if ((self.X - self.desired_point_global[0])**2 + (self.Y - self.desired_point_global[1])**2)**0.5 > 0.3:
             self.move_pub.publish(self.msg_vel)
@@ -85,12 +86,12 @@ class Pure_pursuit:
         #     self.msg_vel.angular.z = self.omega
         #     self.move_pub.publish(self.msg_vel)
         
-        # else:
-        #     msg = Pose2D() 
-        #     msg.x = 100
-        #     msg.y = 100
-        #     msg.theta = 100
-        #     self.pp_pub.publish(msg)
+        else:
+            msg = Pose2D() 
+            msg.x = 100
+            msg.y = 100
+            msg.theta = 100
+            self.pp_pub.publish(msg)
 
     def run(self):
         rospy.spin()

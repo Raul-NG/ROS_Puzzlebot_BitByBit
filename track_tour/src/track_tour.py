@@ -23,15 +23,19 @@ class Track_tour:
         self.msg_vel = Twist()
         self.pp_turn = 0
         self.num_intersection = 0
+        self.con_flag = True
 
         self.X = 0
         self.Y = 0
         self.theta = 0
 
         rospy.init_node('track_tour')
-        rospy.Subscriber('/line_detector', Float32MultiArray, self.line_callback)
+        rospy.Subscriber('/line_detector/line', Float32MultiArray, self.line_callback)
+        rospy.Subscriber('/line_detector/check', Float32MultiArray, self.line_callback)
         rospy.Subscriber('/odom', Pose2D, self.odom_callback)
-        rospy.Subscriber('/traffic_light', String, self.tl_callback)
+        rospy.Subscriber('/traffic_light/first/detection', String, self.tl1_callback)
+        rospy.Subscriber('/traffic_light/second/detection', String, self.tl2_callback)
+
         rospy.Subscriber('/pp_point', Pose2D, self.pp_callback)
         rospy.Subscriber('/signal', String, self.signal_callback)
         self.move_pub = rospy.Publisher('/cmd_vel', Twist, queue_size=10)
@@ -56,7 +60,7 @@ class Track_tour:
             self.move_pub.publish(self.msg_vel)
         else:
             self.pp_pub.publish(self.pp_msg)
-        self.activator_pub.publish(self.activate_msg.data)
+        # self.activator_pub.publish(self.activate_msg.data)
 
     def odom_callback(self, msg): #Determine the current location and direction
         self.X = msg.x
@@ -76,7 +80,23 @@ class Track_tour:
             # self.msg_vel.angular.z = 0
 
     def signal_callback(self, msg):
-        pass
+        if msg.data == "continue" and self.con_flag:
+            self.num_intersection = 0
+            self.con_flag = False
+            self.spl_flag = True
+        elif msg.data == "no speed limit" and self.spl_flag:
+            self.spl_flag = False
+            self.linear_speed = 0.12
+            self.turn_flag = True
+        elif msg.data == "turn" and self.turn_flag:
+            self.num_intersection = 1
+            self.turn_flag = False
+            self.stop_flag = True
+        elif msg.data == "stop" and self.stop_flag:
+            self.stop_flag = False
+            self.msg_vel.linear.x = 0
+            self.msg_vel.angular.z = 0
+            self.con_flag = True
         # if msg.data == "stop":
         #     pass
         # elif msg.data == "continue":
@@ -89,12 +109,8 @@ class Track_tour:
         #     self.linear_speed = 0.12
         # elif msg.data == "no":
         #     self.num_intersection = -1
-    
-    def tl_callback(self, msg):
-        if msg.data[0] != 0:#self.num_intersection:
-            return
-        
-        if msg.data[1:] == "green":
+    def tl1_callback(self, msg):
+        if msg.data == "green":
             for _ in range(rep):
                 self.activate_msg.data = "TL_deactivate" #PP, LD, TL
                 self.activator_pub.publish(self.activate_msg)
@@ -107,6 +123,23 @@ class Track_tour:
         else:
             self.msg_vel.linear.x = 0
             self.msg_vel.angular.z = 0
+            rospy.loginfo("Detener")
+
+    def tl2_callback(self, msg):
+        if msg.data == "green":
+            for _ in range(rep):
+                self.activate_msg.data = "TL_deactivate" #PP, LD, TL
+                self.activator_pub.publish(self.activate_msg)
+                # punto 1 o punto 2
+            for _ in range(rep):
+                self.activate_msg.data = "PP_activate"
+                self.activator_pub.publish(self.activate_msg)
+
+            #functionPP(action)
+        else:
+            self.msg_vel.linear.x = 0
+            self.msg_vel.angular.z = 0
+            rospy.loginfo("Detener")
         """
         if msg.data == "red":
             self.msg_vel.linear.x = 0
@@ -134,8 +167,11 @@ class Track_tour:
         """
 
     def line_callback(self, msg):
-        if msg.data[0] < 0:
+        if msg.data[0] < 0 and self.num_intersection != -1:
             # self.num_intersection = 0 if self.Y <= 0.2 else 1
+            self.msg_vel.linear.x = 0
+            self.msg_vel.angular.z = 0
+            rospy.loginfo("Detener")
             try:
                 m = (self.line[3] - self.line[1])/(self.line[2] - self.line[0])
                 x_proyection = (self.num_intersection*360-self.line[1])/m + self.line[0]
@@ -147,15 +183,16 @@ class Track_tour:
             self.pp_msg.x = point[0]
             self.pp_msg.y = point[1]
             self.pp_pub.publish(self.pp_msg)
+            self.num_intersection = -1
             for _ in range(rep):
                 self.activate_msg.data = "LD_deactivate"
                 self.activator_pub.publish(self.activate_msg)
             for _ in range(rep):
                 self.activate_msg.data = "TL_activate"
-                self.activator_pub.publish(self.activate_msg)
+                self.activator_pub.publish(self.activate_msg)  
         else:
             self.line = msg.data
-            kp = 0.005 * self.linear_speed
+            kp = 0.005 * self.linear_speed*0.7 
             kd = 0.0003 * self.linear_speed
             x_b = self.line[0] if self.line[1] <= self.line[3] else self.line[2]
             error_ant = self.error
