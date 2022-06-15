@@ -8,7 +8,6 @@ from std_msgs.msg import Bool
 from geometry_msgs.msg import Pose2D
 import numpy as np
 
-rep = 5
 class Track_tour:
     def __init__(self):
         #Track tour
@@ -59,7 +58,8 @@ class Track_tour:
     
     def send_activator(self, msg):
         self.activate_msg.data = msg
-        self.activator_pub.publish(self.activate_msg)
+        for _ in range(5):
+            self.activator_pub.publish(self.activate_msg)
     
     def timer_callback(self, time):
         if self.activate_msg.data != "PP_activate":
