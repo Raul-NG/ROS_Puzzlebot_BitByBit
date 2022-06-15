@@ -41,27 +41,11 @@ class Line_Detector:
     def activator_callback(self,msg):
         if msg.data == "LD_activate":
             self.activate = True
-        elif msg.data == "LD_deactivate":
+        elif msg.data =="LD_deactivate":
             self.activate = False
 
     def timer_callback(self, time):
-        if not self.activate:
-            return
-        
-        self.lines = []
-        msg = Float32MultiArray()
-        for _ in range(2):
-            self.detect_lines()
-
-        if len(self.lines) > 70:
-            msg.data = [-1, -1, -1, -1]
-            self.line_detector_pub.publish(msg)
-        else:
-            self.choose_line()
-            msg.data = [self.line[i] for i in range(4)]
-            self.line_detector_pub.publish(msg)
-
-        self.show_lines()
+        self.time_sleep = True
 
     def detect_lines(self):
         # Grayscale and Canny Edges extracted
@@ -105,7 +89,24 @@ class Line_Detector:
         self.lines_pub.publish(self.bridge.cv2_to_imgmsg(edges))
 
     def run(self):
-        rospy.spin()
+        while True:
+            if self.activate and self.timer_sleep:
+                self.timer_sleep = False
+                self.lines = []
+                msg = Float32MultiArray()
+                for _ in range(2):
+                    self.detect_lines()
+
+                if len(self.lines) > 70:
+                    msg.data = [-1, -1, -1, -1]
+                    self.line_detector_pub.publish(msg)
+                else:
+                    self.choose_line()
+                    msg.data = [self.line[i] for i in range(4)]
+                    self.line_detector_pub.publish(msg)
+
+                self.show_lines()
+
     
     def stop(self):
         rospy.loginfo("Stopping line detection.")
