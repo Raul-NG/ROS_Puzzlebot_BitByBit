@@ -10,7 +10,8 @@ from cv_bridge import CvBridge
 class Traffic_Light_Detector:
 
     def __init__(self):
-        self.activate = False
+        self.activate = True #False
+        self.time_sleep = True
         self.bridge = CvBridge()
 
         self.image_raw = None
@@ -32,35 +33,12 @@ class Traffic_Light_Detector:
         self.traffic_light_pub = [rospy.Publisher('/traffic_light/first/detection', String, queue_size=10),
                                 rospy.Publisher('/traffic_light/second/detection', String, queue_size=10)]
 
-
         self.rate = rospy.Rate(1/self.dt)
         rospy.on_shutdown(self.stop)
         self.timer = rospy.Timer(rospy.Duration(self.dt), self.timer_callback)
 
     def timer_callback(self, time):
-        if not self.activate: return
-        self.color_check(0)
-        self.color_check(1)
-
-    def color_check(self,semaforo_num):
-        hsv = cv2.cvtColor(self.image_raw, cv2.COLOR_BGR2HSV)[self.cut_y[0]:self.cut_y[1],self.cut_x[semaforo_num][0]:self.cut_x[semaforo_num][1]]
-        masks = [cv2.add(cv2.inRange(hsv, (0, 100, 20), (8, 255,255)), cv2.inRange(hsv, (175, 100, 20), (180, 255,255))), # red
-                cv2.inRange(hsv, (36, 40, 40), (86, 255,255)), # green
-                cv2.inRange(hsv, (15, 100, 100), (30, 255,255))] # yellow
-        self.index = -1;
-        den_ant = 0
-        for color, mask in enumerate(masks):
-            erode = cv2.erode(mask, np.array([[0,1,0],[0,1,1],[0,1,1]], np.uint8), iterations = 2)
-            self.dilate = cv2.dilate(erode, np.ones((3, 3)), iterations = 4)
-            self.mask_publishers[semaforo_num][color].publish(self.bridge.cv2_to_imgmsg(mask))
-            
-            #color density
-            den = np.sum(mask)/((self.cut_x[semaforo_num][1]-self.cut_x[semaforo_num][0])*(self.cut_y[1] - self.cut_y[0])*255)
-            # rospy.loginfo("Den "+self.colors[color]+": "+str(den))
-            if den > den_ant and den > 0.002:
-                den_ant = den
-                self.index = color
-        self.traffic_light_pub[semaforo_num].publish(self.colors[self.index])
+        self.time_sleep = True
 
     def img_callback(self,msg):
         self.image_raw = self.bridge.imgmsg_to_cv2(msg, "passthrough")
@@ -71,16 +49,47 @@ class Traffic_Light_Detector:
             self.activate = True
         elif msg.data == "TL_deactivate":
             self.activate = False
+
+    def color_check(self,semaforo_num):
+        hsv = cv2.cvtColor(self.image_raw, cv2.COLOR_BGR2HSV)[self.cut_y[0]:self.cut_y[1],self.cut_x[semaforo_num][0]:self.cut_x[semaforo_num][1]]
+        masks = [cv2.add(cv2.inRange(hsv, (0, 100, 70), (8, 255,255)), cv2.inRange(hsv, (175, 100, 70), (180, 255,255))), # red
+                cv2.inRange(hsv, (36, 40, 40), (86, 255,255)), # green
+                cv2.inRange(hsv, (15, 100, 100), (30, 255,255))] # yellow
+        self.index = -1;
+        den_ant = 0
+        erode = cv2.erode(masks[1], np.array([[0,1,0],[0,1,1],[0,1,1]], np.uint8), iterations = 2)
+        # self.dilate = cv2.dilate(erode, np.ones((3, 3)), iterations = 4)
+        self.mask_publishers[semaforo_num][1].publish(self.bridge.cv2_to_imgmsg(erode))
+        den = np.sum(erode)/((self.cut_x[semaforo_num][1]-self.cut_x[semaforo_num][0])*(self.cut_y[1] - self.cut_y[0])*255)
+        # rospy.loginfo("Den "+self.colors[color]+": "+str(den))
+        if den > 0.002:
+            self.traffic_light_pub[semaforo_num].publish(self.colors[1])
+        else:
+            self.traffic_light_pub[semaforo_num].publish(self.colors[0])
+        # for color, mask in enumerate(masks):
+        #     erode = cv2.erode(mask, np.array([[0,1,0],[0,1,1],[0,1,1]], np.uint8), iterations = 2)
+        #     # self.dilate = cv2.dilate(erode, np.ones((3, 3)), iterations = 4)
+        #     self.mask_publishers[semaforo_num][color].publish(self.bridge.cv2_to_imgmsg(erode))
+        #     den = np.sum(erode)/((self.cut_x[semaforo_num][1]-self.cut_x[semaforo_num][0])*(self.cut_y[1] - self.cut_y[0])*255)
+        #     # rospy.loginfo("Den "+self.colors[color]+": "+str(den))
+        #     if den > den_ant and den > 0.002:
+        #         den_ant = den
+        #         self.index = color
+        # self.traffic_light_pub[semaforo_num].publish(self.colors[self.index])
             
     def run(self):
-        rospy.spin()
+        while True:
+            if self.activate and self.time_sleep and self.image_raw is not None:
+                self.time_sleep = False
+                self.color_check(0)
+                self.color_check(1)
 
     def stop(self):
         rospy.loginfo("Stopping traffic light detector.")
 
 if __name__ == '__main__':
     traffic_light_detector = Traffic_Light_Detector()
-    try:
-        traffic_light_detector.run()
-    except:
-        pass
+    # try:
+    traffic_light_detector.run()
+    # except:
+    #     pass
