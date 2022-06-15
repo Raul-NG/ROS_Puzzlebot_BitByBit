@@ -10,4 +10,5 @@
     <node name = "track_tour" pkg = "track_tour" type = "track_tour.py" output="screen"/>
     <node name = "pure_pursuit" pkg = "pure_pursuit" type = "pp_single_point.py" output="screen"/>
     <node name = "signal_detector" pkg = "signal_detector" type = "signal_detector2.py" output="screen"/>
+    <node pkg="rosbag" type="record" name="record_odom_rosbag" args="/activator"/>
 </launch>

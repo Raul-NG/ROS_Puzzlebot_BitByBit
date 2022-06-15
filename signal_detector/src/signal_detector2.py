@@ -20,9 +20,11 @@ class Signal_Detector:
         self.tem = []
         self.tem_canny = [] 
         self.tml = 5 
-        self.orb = cv2.ORB_create(500) 
+        self.orb = cv2.ORB_create(45) 
         # self.orb2 = cv2.ORB_create(1000) 
-        self.flann = cv2.FlannBasedMatcher(dict(algorithm = 0, trees = 3), dict(checks = 1000)) 
+        self.flann = cv2.FlannBasedMatcher(dict(algorithm = 0, trees = 3, multi_probe_level = 2), dict(checks = 100)) 
+        # dict(algorithm = 6, table_number = 12, key_size = 12, multi_probe_level = 2)
+        # dict(algorithm = 0, trees = 3)
         self.dest = [] 
         for i in range(self.tml):
             self.tem.append(cv2.imread('/home/puzzlebot/catkin_ws/src/signal_detector/src/Signal_%d.jpeg' % i))
@@ -33,8 +35,9 @@ class Signal_Detector:
             # msk = cv2.GaussianBlur(msk, (9,9), cv2.BORDER_DEFAULT)
             # msk = cv2.dilate(msk, np.ones((2, 2), np.uint8), iterations = 1)
             # msk = cv2.erode(msk, np.ones((2, 2), np.uint8), iterations = 1)
-            msk = cv2.Canny(msk, 70, 100)
-            msk = cv2.dilate(msk, np.ones((5, 5), np.uint8), iterations = 1)
+
+            # msk = cv2.Canny(msk, 70, 100)
+            # msk = cv2.dilate(msk, np.ones((5, 5), np.uint8), iterations = 1)
             self.tem_canny.append(msk)
             
             _, destemp = self.orb.detectAndCompute(self.tem_canny[i], None) 
@@ -64,10 +67,10 @@ class Signal_Detector:
         image = self.bridge.imgmsg_to_cv2(msg, "passthrough")
         gray_image = cv2.cvtColor(image , cv2.COLOR_BGR2GRAY)
         _,msk = cv2.threshold(gray_image,100,255, cv2.THRESH_BINARY)
-        msk = cv2.GaussianBlur(msk, (5,5), cv2.BORDER_DEFAULT)
-        msk = cv2.erode(msk, np.ones((3, 3), np.uint8), iterations = 2)
-        msk = cv2.Canny(msk, 150, 200)
-        msk = cv2.dilate(msk, np.ones((3, 3), np.uint8), iterations = 1)
+        # msk = cv2.GaussianBlur(msk, (5,5), cv2.BORDER_DEFAULT)
+        # msk = cv2.erode(msk, np.ones((3, 3), np.uint8), iterations = 2)
+        # msk = cv2.Canny(msk, 150, 200)
+        # msk = cv2.dilate(msk, np.ones((3, 3), np.uint8), iterations = 1)
         self.image_canny_pub.publish(self.bridge.cv2_to_imgmsg(msk))
         self.image_raw = msk
 
@@ -97,7 +100,7 @@ class Signal_Detector:
                         self.error_count += 1
                 if slm == 0: # Possible bug
                     index = -1 
-                self.signal_pub.publish(self.signals[index]+", "+"slmp: "+str(self.slmp)) 
+                # self.signal_pub.publish(self.signals[index]+", "+"slmp: "+str(self.slmp)) 
                 self.slml.append(slm) 
                 self.il.append(index) 
                 if len(self.slml) > self.sizel: 
@@ -108,13 +111,17 @@ class Signal_Detector:
                 self.ilmo = int(vals[np.argwhere(counts == np.max(counts))][0])
                 self.ila = self.signals[self.ilmo] 
                 self.ilma = round(np.median(np.array(self.il))) 
-
-                self.signal_pub.publish(self.ila+", "+"slmp: "+str(self.slmp)) 
-                # if (self.ila != "stop" or self.slmp >= 3.0) and self.last == self.ila and self.ilma == self.ilmo and np.max(counts) > 13:  
-                #     self.signal_pub.publish(self.ila+", "+"slmp: "+str(self.slmp)) 
                 
-                # self.signal_pub.publish("No hay matches, "+"slmp: "+str(self.slmp))
-                # self.last = self.ila
+                if (self.ila != "turn" or self.slmp >= 2.0) and self.last == self.ila:
+                    self.signal_pub.publish(self.ila+", "+"slmp: "+str(self.slmp))
+                elif self.last != self.ila:
+                    self.signal_pub.publish(self.last+", "+"slmp: "+str(self.slmp))
+                # if (self.ila != "turn" or self.slmp >= 2.0) and self.last == self.ila and self.ilma == self.ilmo and np.max(counts) > 13:  
+                #     self.signal_pub.publish(self.ila+", "+"slmp: "+str(self.slmp)) 
+                else:
+                    self.signal_pub.publish("No hay matches, "+"slmp: "+str(self.slmp))
+                
+                self.last = self.ila
     
     def stop(self): 
         rospy.loginfo("Stopping signal detector.") 
