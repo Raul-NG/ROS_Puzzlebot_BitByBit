@@ -10,7 +10,7 @@ from cv_bridge import CvBridge
 class Traffic_Light_Detector:
 
     def __init__(self):
-        self.activate = True #False
+        self.activate = False
         self.time_sleep = True
         self.bridge = CvBridge()
 
@@ -52,7 +52,7 @@ class Traffic_Light_Detector:
 
     def color_check(self,semaforo_num):
         hsv = cv2.cvtColor(self.image_raw, cv2.COLOR_BGR2HSV)[self.cut_y[0]:self.cut_y[1],self.cut_x[semaforo_num][0]:self.cut_x[semaforo_num][1]]
-        masks = [cv2.add(cv2.inRange(hsv, (0, 100, 70), (8, 255,255)), cv2.inRange(hsv, (175, 100, 70), (180, 255,255))), # red
+        masks = [cv2.add(cv2.inRange(hsv, (0, 100, 20), (8, 255,255)), cv2.inRange(hsv, (175, 100, 20), (180, 255,255))), # red
                 cv2.inRange(hsv, (36, 40, 40), (86, 255,255)), # green
                 cv2.inRange(hsv, (15, 100, 100), (30, 255,255))] # yellow
         self.index = -1;
