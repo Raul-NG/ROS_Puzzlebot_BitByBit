@@ -1,5 +1,4 @@
-
-#!/usr/bin/env python 
+#!/usr/bin/env python
 
 import rospy 
 from std_msgs.msg import String 
@@ -8,8 +7,8 @@ from cv_bridge import CvBridge
 import numpy as np 
 import cv2
 
-class Signal_Detector: 
-    def __init__(self): 
+class Signal_Detector:
+    def __init__(self):
         self.activate = True
         self.time_sleep = True
         self.bridge = CvBridge() 
@@ -129,7 +128,7 @@ class Signal_Detector:
 
 if __name__ == '__main__':
     sign_detect = Signal_Detector()
-    try:
-        sign_detect.run()
-    except:
-        pass
+    # try:
+    sign_detect.run()
+    # except:
+    #     pass

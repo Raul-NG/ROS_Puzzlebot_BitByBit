@@ -3,9 +3,10 @@
 	<include file="$(find ros_deep_learning)/launch/video_source.ros1.launch"/>
     <include file="$(find puzzlebot_autostart)/launch/puzzlebot_autostart.launch"/>
     <arg name="node_start_delay" default="5.0" />  
-    <node name="Line_detector" pkg="line_detection" type="line_detection.py" launch-prefix="bash -c 'sleep $(arg node_start_delay); $0 $@' " output="screen"/>
+    <node name="Line_detector" pkg="line_detection" type="line_detection.py" launch-prefix="bash -c 'sleep $(arg node_start_delay); $0 $@'" output="screen"/>
     <node name="odom_node" pkg="odom_calc" type="odom.py"/>
     <node name = "Pure_pursuit" pkg = "pure_pursuit" type="pure_pursuit.py" output="screen"/>
     <node name = "Track_tour" pkg = "track_tour" type="track_tour.py" output="screen"/>
     <node name="traffic_light_detection" pkg="traffic_light_detection" type="traffic_light_detection.py" output = "screen"/>
+    <node name = "signal_detector" pkg = "signal_detector" type = "signal_detector.py" output="screen"/>
 </launch>

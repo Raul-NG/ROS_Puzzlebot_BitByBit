@@ -1,0 +1,6 @@
+<?xml version = "10" encoding="UTF-8"?>
+<launch>
+	<include file="$(find ros_deep_learning)/launch/video_source.ros1.launch"/>
+    <arg name="node_start_delay" default="5.0" />  
+    <node name="signal_detector" pkg="signal_detector" type="signal_detector.py" launch-prefix="bash -c 'sleep $(arg node_start_delay); $0 $@' " output = "screen"/>
+</launch>
