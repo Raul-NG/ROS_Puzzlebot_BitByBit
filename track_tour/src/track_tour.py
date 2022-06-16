@@ -2,11 +2,8 @@
 
 import rospy
 from geometry_msgs.msg import Twist
-from std_msgs.msg import Float32MultiArray
 from std_msgs.msg import String
 from std_msgs.msg import Int16
-from geometry_msgs.msg import Pose2D
-import numpy as np
 
 class Track_tour:
 
@@ -18,6 +15,9 @@ class Track_tour:
         self.num_intersection = 0
         self.traffic_light = ""
         self.signal = ""
+        self.speed_flag = False
+        self.pp_finish = True
+
 
 
         rospy.init_node('Track_tour')
@@ -63,12 +63,9 @@ class Track_tour:
             self.move_pub.publish(t)
         if self.num_intersection == "1" and self.signal == "no_speed_limit" and self.pp_finish:
             self.sign_pub.publish("no_speed_limit")
-            t = Twist()
-            t.linear.x = 0.2
-            t.angular.z = 0.0
-            self.move_pub.publish(t)
-            self.move_pub.publish(t)
-            self.move_pub.publish(t)
+            self.activator_pub.publish("no_speed_limit")
+        if self.num_intersection == "1" and self.signal == "no matches" and self.pp_finish:
+            self.activator_pub.publish("speed_limit")
 
     def ld_talkback_callback(self,msg):
         # if msg.data == "intersection": 
