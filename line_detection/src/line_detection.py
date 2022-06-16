@@ -20,7 +20,7 @@ class Line_Detector:
         self.error = 0.0
         # self.x_center = 640
         self.x_center = 440
-        self.linear_speed = 0.12      #Linear velocity
+        self.linear_speed = 0.10      #Linear velocity
         self.angular_speed = 0.0
         self.max_omega = np.pi/4    #Maximum angular velocity
         self.cut_y = (int(3*720.0/4.0),720)
@@ -63,6 +63,8 @@ class Line_Detector:
             self.activate_flag = True
         elif msg.data == "LD_deactivate":
             self.activate_flag = False
+        elif msg.data == "No speed limit":
+            self.linear_speed = 0.15
 
     def img_callback(self,msg):
         self.image_raw = self.bridge.imgmsg_to_cv2(msg, "passthrough")
