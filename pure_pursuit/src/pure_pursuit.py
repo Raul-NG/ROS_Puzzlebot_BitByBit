@@ -86,8 +86,8 @@ class Pure_pursuit:
         if msg.data == 1:
             self.wp = np.array([np.linspace(0.5,1.40,20),np.linspace(0,0,20)])
         elif msg.data == 2:
-            self.wp = np.array([np.linspace(0.8,0.8,15),np.linspace(0.35,0.1,15)])
-            self.wp = np.append(self.wp, np.array([np.linspace(0.8,0.2,15),np.linspace(0.1,0.1,15)]),axis=1)
+            self.wp = np.array([np.linspace(0.7,0.7,15),np.linspace(0.35,0.1,15)])
+            self.wp = np.append(self.wp, np.array([np.linspace(0.7,0.2,15),np.linspace(0.07,0.07,15)]),axis=1)
             
 
     def activator_callback(self,msg):

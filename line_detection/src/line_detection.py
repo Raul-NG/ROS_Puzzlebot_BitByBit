@@ -18,15 +18,17 @@ class Line_Detector:
         self.error_horizontal = 0.0
         self.error_angle = 0.0
         self.error = 0.0
-        self.x_center = 640
+        # self.x_center = 640
+        self.x_center = 440
         self.linear_speed = 0.12      #Linear velocity
         self.angular_speed = 0.0
         self.max_omega = np.pi/4    #Maximum angular velocity
         self.cut_y = (int(3*720.0/4.0),720)
-        self.cut_x = (0,1280)
+        self.cut_x = (200,1080)
         # self.cut_x = (320,960)
         self.edges = None
         self.activate_flag = True
+        self.intersection = 0
 
         rospy.init_node('Line_Detector')
         rospy.Subscriber('/video_source/raw', Image, self.img_callback)
@@ -48,12 +50,13 @@ class Line_Detector:
             for _ in range(2):
                 self.detect_lines()
                 rospy.loginfo("Lineas: "+str(len(self.lines)))
-            if len(self.lines) > 40:
-                self.talkback_pub.publish("intersection")
+            if len(self.lines) > (49 if self.intersection < 2 else 35):
+                self.talkback_pub.publish(str(self.intersection))
+                self.intersection += 1
             else:
                 self.choose_line()
                 self.navigate()
-        self.show_lines()
+            self.show_lines()
     
     def activator_callback(self,msg):
         if msg.data == "LD_activate":

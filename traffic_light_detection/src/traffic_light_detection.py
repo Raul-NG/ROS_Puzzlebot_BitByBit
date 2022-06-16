@@ -41,7 +41,11 @@ class Traffic_Light_Detector:
         self.timer = rospy.Timer(rospy.Duration(self.dt), self.timer_callback)
 
     def timer_callback(self, time):
-        self.time_sleep = True
+        # self.time_sleep = True
+        if self.activate and self.image_raw is not None:
+            self.time_sleep = False
+            self.color_check(0)
+            # self.color_check(1)
 
     def img_callback(self,msg):
         self.image_raw = self.bridge.imgmsg_to_cv2(msg, "passthrough")
@@ -82,11 +86,7 @@ class Traffic_Light_Detector:
         # self.traffic_light_pub[semaforo_num].publish(self.colors[self.index])
             
     def run(self):
-        while True:
-            if self.activate and self.time_sleep and self.image_raw is not None:
-                self.time_sleep = False
-                self.color_check(0)
-                # self.color_check(1)
+        rospy.spin()
 
     def stop(self):
         rospy.loginfo("Stopping traffic light detector.")

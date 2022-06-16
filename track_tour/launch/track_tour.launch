@@ -7,4 +7,5 @@
     <node name="odom_node" pkg="odom_calc" type="odom.py"/>
     <node name = "Pure_pursuit" pkg = "pure_pursuit" type="pure_pursuit.py" output="screen"/>
     <node name = "Track_tour" pkg = "track_tour" type="track_tour.py" output="screen"/>
+    <node name="traffic_light_detection" pkg="traffic_light_detection" type="traffic_light_detection.py" output = "screen"/>
 </launch>
