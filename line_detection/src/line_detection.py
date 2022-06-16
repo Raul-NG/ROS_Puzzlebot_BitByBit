@@ -49,10 +49,10 @@ class Line_Detector:
         if self.activate_flag and self.image_raw is not None:
             for _ in range(2):
                 self.detect_lines()
-                rospy.loginfo("Lineas: "+str(len(self.lines)))
-            if len(self.lines) > (49 if self.intersection < 2 else 35):
-                self.talkback_pub.publish(str(self.intersection))
+            rospy.loginfo("Lineas: "+str(len(self.lines)))
+            if len(self.lines) > (70 if self.intersection < 2 else 35):
                 self.intersection += 1
+                self.talkback_pub.publish(str(self.intersection))
             else:
                 self.choose_line()
                 self.navigate()

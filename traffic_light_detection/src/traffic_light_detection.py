@@ -10,7 +10,7 @@ from cv_bridge import CvBridge
 class Traffic_Light_Detector:
 
     def __init__(self):
-        self.activate = True #False
+        self.activate = False
         self.time_sleep = True
         self.bridge = CvBridge()
 
@@ -18,8 +18,8 @@ class Traffic_Light_Detector:
 
         # self.cut_y = (0,int(720.0/2.0))
         # self.cut_x = [(0,int(1280.0/3.0)), (int(1280.0/3.0),int(1280.0/3.0*2.0))]
-        self.cut_y = (0,int(2*720.0/3.0))
-        self.cut_x = [(0,int(1280.0/3.0))]#, (int(1280.0/2.0),int(1280.0/3.0*2.0))]
+        self.cut_y = (0,int(720.0/2.0))
+        self.cut_x = [(0,600)]#int(1280.0/2.0))]#, (int(1280.0/2.0),int(1280.0/3.0*2.0))]
         
         self.erode = None
         self.dt = 0.2
@@ -60,16 +60,19 @@ class Traffic_Light_Detector:
     def color_check(self,semaforo_num):
         hsv = cv2.cvtColor(self.image_raw, cv2.COLOR_BGR2HSV)#[self.cut_y[0]:self.cut_y[1],self.cut_x[semaforo_num][0]:self.cut_x[semaforo_num][1]]
         masks = [cv2.add(cv2.inRange(hsv, (0, 100, 20), (8, 255,255)), cv2.inRange(hsv, (175, 100, 20), (180, 255,255))), # red
-                cv2.inRange(hsv, (40, 40, 40), (115, 255,255)), # green
+                cv2.inRange(hsv, (35, 40, 40), (90, 200,255)), # green
+                #cv2.inRange(hsv, (50, 50, 50), (90, 200,255)), # green
                 cv2.inRange(hsv, (15, 100, 100), (30, 255,255))] # yellow
         self.index = -1;
         den_ant = 0
-        # msk = cv2.erode(masks[1], np.array([[0,1,0],[0,1,1],[0,1,1]], np.uint8), iterations = 4)
-        msk = cv2.erode(masks[1], np.ones((3, 3)), iterations = 4)
-        msk = cv2.dilate(msk, np.ones((3, 3)), iterations = 4)
+        msk = masks[1]
+        # msk = cv2.erode(msk, np.array([[0,1,0],[0,1,1],[0,1,1]], np.uint8), iterations = 3)
+        # msk = cv2.erode(msk, np.ones((3, 3)), iterations = 2)
+        # msk = cv2.dilate(msk, np.ones((3, 3)), iterations = 3)
         self.mask_publishers[semaforo_num][1].publish(self.bridge.cv2_to_imgmsg(msk))
         den = np.sum(msk)/((self.cut_x[semaforo_num][1]-self.cut_x[semaforo_num][0])*(self.cut_y[1] - self.cut_y[0])*255)
         # rospy.loginfo("Den "+self.colors[color]+": "+str(den))
+        # if self.activate == True:
         if den > 0.002:
             self.traffic_light_pub[semaforo_num].publish(self.colors[1])
         else:

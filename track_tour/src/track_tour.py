@@ -16,17 +16,21 @@ class Track_tour:
         self.intersection = -1
         self.first_int = True
         self.num_intersection = 0
+        self.traffic_light = ""
 
 
         rospy.init_node('Track_tour')
         rospy.Subscriber('/pure_pursuit/talkback', String, self.pp_talkback_callback)
         rospy.Subscriber('/line_detector/talkback', String, self.ld_talkback_callback)
+        rospy.Subscriber('/traffic_light/detection', String, self.tl_callback)
         self.activator_pub = rospy.Publisher('/activator', String, queue_size=10)
         self.pp_selector = rospy.Publisher('/pure_pursuit/trajectory_selector', Int16, queue_size=10)
         self.move_pub = rospy.Publisher('/cmd_vel', Twist, queue_size=10)
         
+        
         self.activator_pub.publish("LD_activate")
         self.activator_pub.publish("PP_deactivate")
+        self.activator_pub.publish("TL_deactivate")
         
 
         self.t1 = rospy.Timer(rospy.Duration(self.dt), self.timer_callback)
@@ -41,22 +45,24 @@ class Track_tour:
     def pp_talkback_callback(self,msg):
         if msg.data == "done":
             self.activator_pub.publish("LD_activate")
+            
     
     def ld_talkback_callback(self,msg):
         # if msg.data == "intersection": 
         # if self.num_intersection == 0:
+        self.activator_pub.publish("LD_deactivate")
+        rospy.loginfo("LD_deactivate")
         if msg.data == "1":
             self.pp_selector.publish(1)
-            self.activator_pub.publish("LD_deactivate")
-            self.activator_pub.publish("PP_activate")
+            self.activator_pub.publish("TL_activate")
+            rospy.loginfo("TL_activate1")
             # self.num_intersection = 1
         elif msg.data == "2":
             self.pp_selector.publish(2)
-            self.activator_pub.publish("LD_deactivate")
-            self.activator_pub.publish("PP_activate")
+            self.activator_pub.publish("TL_activate")
+            rospy.loginfo("TL_activate2")
             # self.num_intersection = 2
         elif msg.data == "3":
-            self.activator_pub.publish("LD_deactivate")
             t = Twist()
             t.linear.x = 0.0
             t.angular.z = 0.0
@@ -64,9 +70,21 @@ class Track_tour:
             self.move_pub.publish(t)
             self.move_pub.publish(t)
 
+    def tl_callback(self,msg):
+        self.traffic_light = msg.data 
+        if self.traffic_light == "green":
+            rospy.loginfo("Semaforo green")
+            self.activator_pub.publish("TL_deactivate")
+            self.activator_pub.publish("PP_activate")
+        else:
+            rospy.loginfo("Semaforo red")
+            t = Twist()
+            t.linear.x = 0.0
+            t.angular.z = 0.0
+            self.move_pub.publish(t)
+            self.move_pub.publish(t)
+            self.move_pub.publish(t)
 
-            
-        
     def run(self):
         rospy.spin()
     
