@@ -45,13 +45,14 @@ class Line_Detector:
 
     def timer_callback(self, time):
         self.lines = []
-        for _ in range(2):
-            self.detect_lines()
-        if len(self.lines) > 70:
-            self.talkback_pub.publish("intersection")
-        else:
-            self.choose_line()
-            self.navigate()
+        if self.activate_flag:
+            for _ in range(2):
+                self.detect_lines()
+            if len(self.lines) > 70:
+                self.talkback_pub.publish("intersection")
+            else:
+                self.choose_line()
+                self.navigate()
         self.show_lines()
     
     def activator_callback(self,msg):

@@ -17,7 +17,7 @@ class Track_tour:
         self.first_int = True
 
 
-        rospy.init_node('Track_tour')
+        rospy.init_node('track_tour')
         rospy.Subscriber('/pure_pursuit/talkback', String, self.pp_talkback_callback)
         rospy.Subscriber('/line_detector/talkback', String, self.ld_talkback_callback)
         self.activator_pub = rospy.Publisher('/activator', String, queue_size=10)
@@ -37,11 +37,29 @@ class Track_tour:
         if msg.data == "intersection":
             self.num_intersection = 0 if self.first_int == True else 1
             self.first_int = False
-            self.activator_pub.publish("PP_activate")
             if self.num_intersection == 0:
                 self.pp_selector.publish(1)
             elif self.num_intersection ==1:
                 self.pp_selector.publish(2)
             self.activator_pub.publish("LD_deactivate")
+            self.activator_pub.publish("PP_activate")
         
+    def run(self):
+        rospy.spin()
+    
+    def stop(self):
+        rospy.loginfo("Stopping track tour.")
+        self.timer.shutdown()
+        t = Twist()
+        t.linear.x = 0.0
+        t.angular.z = 0.0
+        self.move_pub.publish(t)
+        self.move_pub.publish(t)
+        self.move_pub.publish(t)
 
+if __name__ == '__main__':
+    track_tour = Track_tour()
+    try:
+        track_tour.run()
+    except:
+        pass

@@ -115,8 +115,8 @@ class Pure_pursuit:
             if ((self.X - self.wp[0,-1])**2 + (self.Y - self.wp[1,-1])**2)**0.5 < 0.3:
                 if not self.finish_flag:
                     self.finish_flag = True
-                    self.wp = np.array([np.linspace(0.8,0.8,15),np.linspace(0.35,0.1,15)])
-                    self.wp = np.append(self.wp, np.array([np.linspace(0.8,-0.3,15),np.linspace(0.1,0.1,15)]),axis=1)
+                    # self.wp = np.array([np.linspace(0.8,0.8,15),np.linspace(0.35,0.1,15)])
+                    # self.wp = np.append(self.wp, np.array([np.linspace(0.8,-0.3,15),np.linspace(0.1,0.1,15)]),axis=1)
                 else:
                     self.talkback_pub.publish("done")
                     self.activate_flag = False
