@@ -68,7 +68,7 @@ class Traffic_Light_Detector:
         msk = masks[1]
         # msk = cv2.erode(msk, np.array([[0,1,0],[0,1,1],[0,1,1]], np.uint8), iterations = 3)
         # msk = cv2.erode(msk, np.ones((3, 3)), iterations = 2)
-        # msk = cv2.dilate(msk, np.ones((3, 3)), iterations = 3)
+        msk = cv2.dilate(msk, np.ones((3, 3)), iterations = 2)
         self.mask_publishers[semaforo_num][1].publish(self.bridge.cv2_to_imgmsg(msk))
         den = np.sum(msk)/((self.cut_x[semaforo_num][1]-self.cut_x[semaforo_num][0])*(self.cut_y[1] - self.cut_y[0])*255)
         # rospy.loginfo("Den "+self.colors[color]+": "+str(den))
