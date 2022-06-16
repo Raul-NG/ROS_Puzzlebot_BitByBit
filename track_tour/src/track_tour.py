@@ -17,17 +17,24 @@ class Track_tour:
         self.first_int = True
 
 
-        rospy.init_node('track_tour')
+        rospy.init_node('Track_tour')
         rospy.Subscriber('/pure_pursuit/talkback', String, self.pp_talkback_callback)
         rospy.Subscriber('/line_detector/talkback', String, self.ld_talkback_callback)
         self.activator_pub = rospy.Publisher('/activator', String, queue_size=10)
         self.pp_selector = rospy.Publisher('/pure_pursuit/trajectory_selector', Int16, queue_size=10)
+
+        self.activator_pub.publish("LD_activate")
+        self.activator_pub.publish("PP_deactivate")
+        
 
         self.t1 = rospy.Timer(rospy.Duration(self.dt), self.timer_callback)
 
         self.rate = rospy.Rate(100)
         
         rospy.on_shutdown(self.stop)
+
+    def timer_callback(self,time):
+        pass
 
     def pp_talkback_callback(self,msg):
         if msg.data == "done":

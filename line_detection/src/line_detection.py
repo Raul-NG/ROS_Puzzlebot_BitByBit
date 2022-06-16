@@ -2,12 +2,11 @@
 
 import rospy
 from sensor_msgs.msg import Image
-from sensor_msgs.msg import String
+from std_msgs.msg import String
 from geometry_msgs.msg import Twist
 from cv_bridge import CvBridge
 import numpy as np
 import cv2
-import math
 
 class Line_Detector:
     def __init__(self):
@@ -20,7 +19,7 @@ class Line_Detector:
         self.error_angle = 0.0
         self.error = 0.0
         self.x_center = 640
-        self.linear_speed = 0.07      #Linear velocity
+        self.linear_speed = 0.12      #Linear velocity
         self.angular_speed = 0.0
         self.max_omega = np.pi/4    #Maximum angular velocity
         self.cut_y = (int(3*720.0/4.0),720)
@@ -35,8 +34,8 @@ class Line_Detector:
         # rospy.Subscriber('/odom', Pose2D, self.odom_callback)
         self.edges_pub = rospy.Publisher('/img_properties/edges', Image, queue_size=10)
         self.lines_pub = rospy.Publisher('/img_properties/lines', Image, queue_size=10)
-        self.canny_1 = rospy.Publisher('/img_properties/canny_1', Image, queue_size=10)
-        self.canny_2 = rospy.Publisher('/img_properties/canny_2', Image, queue_size=10)
+        # self.canny_1 = rospy.Publisher('/img_properties/canny_1', Image, queue_size=10)
+        # self.canny_2 = rospy.Publisher('/img_properties/canny_2', Image, queue_size=10)
         self.move_pub = rospy.Publisher('/cmd_vel', Twist, queue_size=10)
         self.talkback_pub = rospy.Publisher('/line_detector/talkback', String, queue_size=10)
         self.rate = rospy.Rate(1/self.dt)
@@ -45,10 +44,11 @@ class Line_Detector:
 
     def timer_callback(self, time):
         self.lines = []
-        if self.activate_flag:
+        if self.activate_flag and self.image_raw is not None:
             for _ in range(2):
                 self.detect_lines()
-            if len(self.lines) > 70:
+                rospy.loginfo("Lineas: "+str(len(self.lines)))
+            if len(self.lines) > 40:
                 self.talkback_pub.publish("intersection")
             else:
                 self.choose_line()
@@ -67,9 +67,9 @@ class Line_Detector:
     def detect_lines(self):
         # Grayscale and Canny Edges extracted
         gray_image = cv2.cvtColor(self.image_raw, cv2.COLOR_BGR2GRAY)
-        self.canny_1.publish(self.bridge.cv2_to_imgmsg(gray_image))
+        # self.canny_1.publish(self.bridge.cv2_to_imgmsg(gray_image))
         _,msk = cv2.threshold(gray_image,90,255, cv2.THRESH_BINARY)
-        self.canny_2.publish(self.bridge.cv2_to_imgmsg(msk))
+        # self.canny_2.publish(self.bridge.cv2_to_imgmsg(msk))
         msk = cv2.GaussianBlur(msk, (9,9), cv2.BORDER_DEFAULT)
         erode = cv2.erode(msk, np.ones((5, 5), np.uint8), iterations = 4)
         
@@ -78,7 +78,7 @@ class Line_Detector:
         
         self.edges = cv2.dilate(edges, np.ones((5, 5), np.uint8), iterations = 1)
         self.edges_pub.publish(self.bridge.cv2_to_imgmsg(self.edges))
-        linesP = cv2.HoughLinesP(self.edges[self.cut_y[0]:self.cut_y[1],self.cut_x[0]:self.cut_x[1]], 1, np.pi / 180, 50, None, 100, 80)
+        linesP = cv2.HoughLinesP(self.edges[self.cut_y[0]:self.cut_y[1],self.cut_x[0]:self.cut_x[1]], 1, np.pi / 180, 50, None, 150, 80)
         if linesP is not None:
             self.lines.extend(linesP)
         # linesP = cv2.HoughLinesP(edges[Cutx[0]:Cutx[1],Cuty[0]:Cuty[1]], 1, np.pi / 180, 50, None, 100, 10)
