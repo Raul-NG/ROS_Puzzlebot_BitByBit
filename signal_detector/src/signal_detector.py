@@ -101,7 +101,7 @@ class Signal_Detector:
         self.ilma = round(np.median(np.array(self.il))) 
         
         # if (self.ila != "turn" or self.slmp >= 2.0) and self.last == self.ila:
-        self.signal_pub.publish(self.ila+", "+"slmp: "+str(self.slmp))
+        self.signal_pub.publish(self.ila)
         # elif self.last != self.ila:
         #     self.signal_pub.publish(self.last)#+", "+"slmp: "+str(self.slmp))
         # if (self.ila != "turn" or self.slmp >= 2.0) and self.last == self.ila and self.ilma == self.ilmo and np.max(counts) > 13:  
