@@ -2,6 +2,7 @@
 
 import rospy
 from sensor_msgs.msg import Image
+from sensor_msgs.msg import String
 from geometry_msgs.msg import Twist
 from cv_bridge import CvBridge
 import numpy as np
@@ -26,15 +27,18 @@ class Line_Detector:
         self.cut_x = (0,1280)
         # self.cut_x = (320,960)
         self.edges = None
+        self.activate_flag = True
 
         rospy.init_node('Line_Detector')
         rospy.Subscriber('/video_source/raw', Image, self.img_callback)
+        rospy.Subscriber('/activator', String, self.activator_callback)
         # rospy.Subscriber('/odom', Pose2D, self.odom_callback)
         self.edges_pub = rospy.Publisher('/img_properties/edges', Image, queue_size=10)
         self.lines_pub = rospy.Publisher('/img_properties/lines', Image, queue_size=10)
         self.canny_1 = rospy.Publisher('/img_properties/canny_1', Image, queue_size=10)
         self.canny_2 = rospy.Publisher('/img_properties/canny_2', Image, queue_size=10)
         self.move_pub = rospy.Publisher('/cmd_vel', Twist, queue_size=10)
+        self.talkback_pub = rospy.Publisher('/line_detector/talkback', String, queue_size=10)
         self.rate = rospy.Rate(1/self.dt)
         self.timer = rospy.Timer(rospy.Duration(self.dt), self.timer_callback)
         rospy.on_shutdown(self.stop)
@@ -44,11 +48,17 @@ class Line_Detector:
         for _ in range(2):
             self.detect_lines()
         if len(self.lines) > 70:
-            self.check_trff_lgt()
+            self.talkback_pub.publish("intersection")
         else:
             self.choose_line()
             self.navigate()
         self.show_lines()
+    
+    def activator_callback(self,msg):
+        if msg.data == "LD_activate":
+            self.activate_flag = True
+        elif msg.data == "LD_deactivate":
+            self.activate_flag = False
 
     def img_callback(self,msg):
         self.image_raw = self.bridge.imgmsg_to_cv2(msg, "passthrough")

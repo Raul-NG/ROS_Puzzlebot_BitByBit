@@ -5,6 +5,8 @@ import rospy
 import numpy as np
 from geometry_msgs.msg import Pose2D
 from geometry_msgs.msg import Twist
+from std_msgs.msg import String
+from std_msgs.msg import Int16
 
 class Pure_pursuit:
 
@@ -16,90 +18,17 @@ class Pure_pursuit:
         self.actual_wp = 0 #Index for the closest waypoint
         self.next_wp = 0
         self.goal_transformed = np.array([[],[]])
+        self.activate_flag = False
         
 
-        #RRT2
-        self.wp = np.array([[0.025,0.025],
-                           [0.075,0.075],
-                           [0.125,0.125],
-                           [0.175,0.175],
-                           [0.225,0.225],
-                           [0.275,0.275],
-                           [0.325,0.325],
-                           [0.375,0.375],
-                           [0.425,0.425],
-                           [0.475,0.425],
-                           [0.525,0.475],
-                           [0.575,0.525],
-                           [0.625,0.575],
-                           [0.675,0.625],
-                           [0.725,0.675],
-                           [0.775,0.725],
-                           [0.825,0.775],
-                           [0.875,0.825],
-                           [0.925,0.875],
-                           [0.975,0.925],
-                           [1.025,0.975],
-                           [1.075,1.025],
-                           [1.125,1.075],
-                           [1.175,1.125],
-                           [1.225,1.175],
-                           [1.275,1.225],
-                           [1.325,1.225],
-                           [1.375,1.225],
-                           [1.425,1.225],
-                           [1.475,1.225],
-                           [1.525,1.225],
-                           [1.575,1.225],
-                           [1.625,1.225],
-                           [1.675,1.225],
-                           [1.725,1.225],
-                           [1.775,1.225],
-                           [1.825,1.225],
-                           [1.875,1.225],
-                           [1.925,1.225],
-                           [1.975,1.225],
-                           [2.025,1.225],
-                           [2.075,1.225],
-                           [2.125,1.225],
-                           [2.175,1.225],
-                           [2.225,1.225],
-                           [2.275,1.225],
-                           [2.325,1.225],
-                           [2.375,1.225],
-                           [2.425,1.225]])
-
-        self.wp = np.transpose(self.wp)
-        self.wp = self.wp - self.wp[:,0].reshape(2,1)
-        self.wp = np.array([[np.cos(np.pi/2), -np.sin(np.pi/2)], [np.sin(np.pi/2), np.cos(np.pi/2)]]).dot(self.wp)
+        #Pista
+        # self.wp = np.array([np.linspace(0,1.8,20),np.linspace(0,0,20)])
+        # self.wp = np.append(self.wp, np.array([np.linspace(1.9,1.9,30),np.linspace(0,1.2,30)]),axis=1)
+        # self.wp = np.append(self.wp, np.array([np.linspace(1.9,0.8,30),np.linspace(1.2,1.2,30)]),axis=1)
+        # self.wp = np.append(self.wp, np.array([np.linspace(0.8,0.8,30),np.linspace(1.2,0.35,30)]),axis=1)
 
 
-
-
-        #Trapecio
-       # self.wp = np.array([np.linspace(0,1.8,20),np.linspace(0,0,20)])
-       # self.wp = np.append(self.wp, np.array([np.linspace(1.8,1.3,20),np.linspace(0.2,1,20)]),axis=1)
-       # self.wp = np.append(self.wp, np.array([np.linspace(1.3,0.3,20),np.linspace(1,1,20)]),axis=1)
-       # self.wp = np.append(self.wp, np.array([np.linspace(0.3,0,20),np.linspace(1,0.4,20)]),axis=1)
-
-
-        #Triangulo
-       # self.wp = np.array([np.linspace(0,1.8,20),np.linspace(0,0,20)])
-       # self.wp = np.append(self.wp, np.array([np.linspace(1.8,0.2,20),np.linspace(0.2,1.8,20)]),axis=1)
-       # self.wp = np.append(self.wp,np.array([np.linspace(0,0,20),np.linspace(1.8,0.35,20)]),axis=1)
-    
-       
-        #Cuadrado
-        #self.wp = np.array([np.linspace(0,2,20), np.linspace(0,0,20)])
-        #self.wp = np.append(self.wp,np.array([np.linspace(2,2,20),np.linspace(0,2,20)]),axis=1)
-        #self.wp = np.append(self.wp,np.array([np.linspace(2,0,20),np.linspace(2,2,20)]),axis=1)
-        #self.wp = np.append(self.wp,np.array([np.linspace(0,0,18),np.linspace(2,0.5,18)]),axis=1)
-
-        #self.wp = [[0, 0.15, 0.15, 0.15, 0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0], [np.linspace(0,3,20)]]
-        #self.wp = np.array([[np.linspace(0,1,20),np.linspace(1,1,20)], [np.linspace(0,0,20),np.linspace(0,1,20)]])
-        #self.wp = np.array([[np.linspace(0,1,20), np.linspace(0,0,20)], [np.linspace(1,1,20), np.linspace(0,1,20)], [np.linspace(1,0,20), np.linspace(1,1,20)],[np.linspace(0,0,20), np.linspace(1,0.2,20)]])
-        
-        self.v = 0.4      #Linear velocity
+        self.v = 0.2      #Linear velocity
         self.omega = 0.0      #Angular velocity
         self.pos = np.array([[0],[0]])       #Position array
 
@@ -107,13 +36,19 @@ class Pure_pursuit:
         self.l_d = 0.3     #Lookahead distance
 
 
-        self.dt = 0.01        
+        self.dt = 0.01   
+        self.finish_flag = False     
 
         rospy.init_node('Pure_pursuit')
 
         rospy.Subscriber('/odom', Pose2D, self.odom_callback)
+        rospy.Subscriber('/activator',String, self.activator_callback)
+        rospy.Subscriber('/pure_pursuit/trajectory_selector',Int16, self.selector_callback)
+
         
         self.pp_pub = rospy.Publisher('/cmd_vel', Twist, queue_size=10)
+        self.talkback_pub = rospy.Publisher('/pure_pursuit/talkback', Twist, queue_size=10)
+        
 
         self.t1 = rospy.Timer(rospy.Duration(self.dt), self.timer_callback)
 
@@ -124,21 +59,31 @@ class Pure_pursuit:
     def timer_callback(self, time):
         msg = Twist()
 
-        self.find_closest_wp()
-        self.find_goal()
-        self.transform_goal_coordenates()
-        self.set_parameters()
-        msg.linear.x = self.v
-        msg.angular.z = self.omega
+        if self.activate_flag:
+            self.find_closest_wp()
+            self.find_goal()
+            self.transform_goal_coordenates()
+            self.set_parameters()
+            msg.linear.x = self.v
+            msg.angular.z = self.omega
 
-        msg.linear.y = 0.0
-        msg.linear.z = 0.0
-        msg.angular.x = 0.0
-        msg.angular.y = 0.0
-        self.pp_pub.publish(msg)
+            msg.linear.y = 0.0
+            msg.linear.z = 0.0
+            msg.angular.x = 0.0
+            msg.angular.y = 0.0
+            self.pp_pub.publish(msg)
         
-        
-    
+    def selector_callback(self,msg):
+        if msg.data == 1:
+            self.wp = np.array([np.linspace(0.5,1.10,20),np.linspace(0,0,20)])
+        elif msg.data ==2:
+            self.wp = np.array([np.linspace(0.8,0.8,15),np.linspace(0.35,0.1,15)])
+            self.wp = np.append(self.wp, np.array([np.linspace(0.8,-0.3,15),np.linspace(0.1,0.1,15)]),axis=1)
+
+    def activator_callback(self,msg):
+        if msg.data == "PP_activate":
+            self.activate_flag = True
+
     def odom_callback(self,msg): #Determine the current location and direction
         self.X = msg.x
         self.Y = msg.y
@@ -168,12 +113,19 @@ class Pure_pursuit:
     def run(self):
         while not rospy.is_shutdown():
             if ((self.X - self.wp[0,-1])**2 + (self.Y - self.wp[1,-1])**2)**0.5 < 0.3:
-                self.stop()
+                if not self.finish_flag:
+                    self.finish_flag = True
+                    self.wp = np.array([np.linspace(0.8,0.8,15),np.linspace(0.35,0.1,15)])
+                    self.wp = np.append(self.wp, np.array([np.linspace(0.8,-0.3,15),np.linspace(0.1,0.1,15)]),axis=1)
+                else:
+                    self.talkback_pub.publish("done")
+                    self.activate_flag = False
             self.rate.sleep()
 
     def stop(self):
         rospy.loginfo("Stopping pure pursuit")
-        self.t1.shutdown()
+        # self.talkback_pub.publish("done")
+        # self.t1.shutdown()
         t = Twist()
         t.linear.x = 0
         t.angular.z = 0
